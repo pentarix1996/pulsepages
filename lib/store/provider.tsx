@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/provider'
 import type { Project, Incident, Component, IncidentUpdate } from '@/lib/types'
@@ -31,8 +31,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { user } = useAuth()
-  const supabase = createClient()
+  const { user, isLoading: authLoading } = useAuth()
+  const supabase = useMemo(() => createClient(), [])
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -60,8 +60,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [user, supabase])
 
   useEffect(() => {
+    if (authLoading) return
     loadData()
-  }, [loadData])
+  }, [loadData, authLoading])
 
   const addProject = useCallback(async (data: { name: string; slug: string; description: string; userId: string }) => {
     const { data: newProject, error } = await supabase
@@ -97,22 +98,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [supabase])
 
   const addComponent = useCallback(async (projectId: string, name: string) => {
-    const { data, error } = await supabase
-      .from('components')
-      .insert([{ project_id: projectId, name, status: 'operational' }])
-      .select()
-      .single()
+    try {
+      const { data, error } = await supabase
+        .from('components')
+        .insert([{ project_id: projectId, name, status: 'operational' }])
+        .select()
+        .single()
 
-    if (error) return { success: false, error: error.message }
+      if (error) return { success: false, error: error.message }
 
-    setProjects((prev) =>
-      prev.map((p) =>
-        p.id === projectId
-          ? { ...p, components: [...(p.components || []), data as Component] }
-          : p
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === projectId
+            ? { ...p, components: [...(p.components || []), data as Component] }
+            : p
+        )
       )
-    )
-    return { success: true, component: data as Component }
+      return { success: true, component: data as Component }
+    } catch (err: unknown) {
+      console.error('Error adding component:', err)
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+    }
   }, [supabase])
 
   const updateComponentStatus = useCallback(async (componentId: string, projectId: string, status: string) => {
@@ -156,38 +162,43 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     severity: string
     components: string[]
   }) => {
-    const { data: incData, error: incError } = await supabase
-      .from('incidents')
-      .insert([{
-        project_id: data.projectId,
-        title: data.title,
-        description: data.description,
-        status: data.status,
-        severity: data.severity,
-        component_ids: data.components,
-      }])
-      .select()
-      .single()
+    try {
+      const { data: incData, error: incError } = await supabase
+        .from('incidents')
+        .insert([{
+          project_id: data.projectId,
+          title: data.title,
+          description: data.description,
+          status: data.status,
+          severity: data.severity,
+          component_ids: data.components,
+        }])
+        .select()
+        .single()
 
-    if (incError) return { success: false, error: incError.message }
+      if (incError) return { success: false, error: incError.message }
 
-    const { data: updateData } = await supabase
-      .from('incident_updates')
-      .insert([{
-        incident_id: incData.id,
-        message: incData.description || 'Incident reported.',
-        status: incData.status,
-      }])
-      .select()
-      .single()
+      const { data: updateData } = await supabase
+        .from('incident_updates')
+        .insert([{
+          incident_id: incData.id,
+          message: incData.description || 'Incident reported.',
+          status: incData.status,
+        }])
+        .select()
+        .single()
 
-    const newIncident: Incident = {
-      ...incData,
-      incident_updates: updateData ? [updateData] : [],
-    } as Incident
+      const newIncident: Incident = {
+        ...incData,
+        incident_updates: updateData ? [updateData] : [],
+      } as Incident
 
-    setIncidents((prev) => [newIncident, ...prev])
-    return { success: true, incident: newIncident }
+      setIncidents((prev) => [newIncident, ...prev])
+      return { success: true, incident: newIncident }
+    } catch (err: unknown) {
+      console.error('Error adding incident:', err)
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+    }
   }, [supabase])
 
   const updateIncident = useCallback(async (id: string, updates: Record<string, unknown>, message?: string) => {
@@ -231,7 +242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const getIncidentById = useCallback((id: string) => incidents.find((i) => i.id === id), [incidents])
 
   return (
-    <StoreContext
+    <StoreContext.Provider
       value={{
         projects,
         incidents,
@@ -253,7 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </StoreContext>
+    </StoreContext.Provider>
   )
 }
 
