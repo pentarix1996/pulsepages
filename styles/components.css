@@ -23,6 +23,17 @@
   outline-offset: 2px;
 }
 
+a.btn,
+a.btn:hover {
+  color: inherit;
+}
+
+a.btn-primary,
+a.btn-primary:hover {
+  color: #ffffff;
+}
+
+
 .btn-primary {
   background-color: var(--brand-indigo);
   color: #ffffff;
@@ -125,7 +136,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .btn-loading-text {
@@ -221,6 +234,15 @@ select.input-field {
   background-repeat: no-repeat;
   background-position: right 12px center;
   padding-right: 36px;
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+select.input-field option {
+  background-color: #191a1b;
+  /* Level 3 Surface from DESIGN.md */
+  color: #f7f8f8;
+  /* Primary Text from DESIGN.md */
+  padding: 8px;
 }
 
 .badge {

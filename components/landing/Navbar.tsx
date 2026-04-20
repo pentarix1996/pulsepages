@@ -22,9 +22,9 @@ export function Navbar() {
             PulsePages
           </Link>
           <div className="landing-nav-links" id="nav-links">
-            <button className="landing-nav-link" onClick={() => scrollTo('features')}>Features</button>
-            <button className="landing-nav-link" onClick={() => scrollTo('pricing')}>Pricing</button>
-            <button className="landing-nav-link" onClick={() => scrollTo('faq')}>FAQ</button>
+            <a className="landing-nav-link" href="#features" onClick={(e) => { e.preventDefault(); scrollTo('features') }}>Features</a>
+            <a className="landing-nav-link" href="#pricing" onClick={(e) => { e.preventDefault(); scrollTo('pricing') }}>Pricing</a>
+            <a className="landing-nav-link" href="#faq" onClick={(e) => { e.preventDefault(); scrollTo('faq') }}>FAQ</a>
           </div>
           <div className="landing-nav-actions" id="nav-actions">
             {user ? (
@@ -62,9 +62,9 @@ export function Navbar() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <button className="mobile-menu-link" onClick={() => { scrollTo('features'); setMobileOpen(false) }}>Features</button>
-        <button className="mobile-menu-link" onClick={() => { scrollTo('pricing'); setMobileOpen(false) }}>Pricing</button>
-        <button className="mobile-menu-link" onClick={() => { scrollTo('faq'); setMobileOpen(false) }}>FAQ</button>
+        <a className="mobile-menu-link" href="#features" onClick={(e) => { e.preventDefault(); scrollTo('features'); setMobileOpen(false) }}>Features</a>
+        <a className="mobile-menu-link" href="#pricing" onClick={(e) => { e.preventDefault(); scrollTo('pricing'); setMobileOpen(false) }}>Pricing</a>
+        <a className="mobile-menu-link" href="#faq" onClick={(e) => { e.preventDefault(); scrollTo('faq'); setMobileOpen(false) }}>FAQ</a>
         {user ? (
           <Link href="/dashboard" className="btn btn-primary btn-lg" onClick={() => setMobileOpen(false)}>Dashboard</Link>
         ) : (
