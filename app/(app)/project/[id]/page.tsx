@@ -156,8 +156,14 @@ function EditProject({ projectId }: { projectId: string }) {
     if (!check.allowed) { addToast(check.message, 'warning'); return }
 
     setComponentLoading(true)
-    await addComponent(projectId, name)
+    const res = await addComponent(projectId, name)
     setComponentLoading(false)
+
+    if (!res.success) {
+      addToast(res.error || 'Failed to add component', 'error')
+      return
+    }
+
     setNewComponentName('')
     setShowAddComponent(false)
     addToast('Component added!')
@@ -178,7 +184,7 @@ function EditProject({ projectId }: { projectId: string }) {
     if (!title || title.length < 2) return
 
     setIncLoading(true)
-    await addIncident({
+    const res = await addIncident({
       projectId,
       title,
       description: sanitizeInput(incDesc),
@@ -187,6 +193,12 @@ function EditProject({ projectId }: { projectId: string }) {
       components: incComponents,
     })
     setIncLoading(false)
+
+    if (!res.success) {
+      addToast(res.error || 'Failed to report incident', 'error')
+      return
+    }
+
     setIncTitle('')
     setIncDesc('')
     setIncComponents([])
@@ -260,10 +272,9 @@ function EditProject({ projectId }: { projectId: string }) {
                 </div>
                 <div className="component-item-actions">
                   <select
-                    className="input-field"
+                    className="component-status-select"
                     value={comp.status}
                     onChange={(e) => handleStatusChange(comp.id, e.target.value)}
-                    style={{ padding: '4px 28px 4px 8px', fontSize: '0.75rem', width: 'auto' }}
                   >
                     {STATUS_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -289,54 +300,56 @@ function EditProject({ projectId }: { projectId: string }) {
           </Button>
         </div>
 
-        {projectIncidents.length === 0 ? (
-          <EmptyState title="No incidents" description="All systems running smoothly." icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>} />
-        ) : (
-          <div className="incident-timeline">
-            {projectIncidents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((inc) => {
-              const badgeVariant = getSeverityBadgeVariant(inc.status, inc.severity)
-              const compNames = (inc.component_ids || []).map((cid) => {
-                const comp = project.components.find((c) => c.id === cid)
-                return comp?.name
-              }).filter(Boolean)
+        <div className="editor-section-body">
+          {projectIncidents.length === 0 ? (
+            <EmptyState title="No incidents" description="All systems running smoothly." icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>} />
+          ) : (
+            <div className="incident-timeline">
+              {projectIncidents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((inc) => {
+                const badgeVariant = getSeverityBadgeVariant(inc.status, inc.severity)
+                const compNames = (inc.component_ids || []).map((cid) => {
+                  const comp = project.components.find((c) => c.id === cid)
+                  return comp?.name
+                }).filter(Boolean)
 
-              return (
-                <div className="incident-item" key={inc.id}>
-                  <div className={`incident-dot incident-dot-${inc.status === 'resolved' ? 'resolved' : badgeVariant}`}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      {inc.status === 'resolved'
-                        ? <polyline points="20 6 9 17 4 12" />
-                        : <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
-                      }
-                    </svg>
-                  </div>
-                  <div className="incident-content">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', flexWrap: 'wrap' }}>
-                      <span className="incident-title">{inc.title}</span>
-                      <Badge variant={badgeVariant}>{inc.status}</Badge>
-                      {compNames.map((n) => <Badge key={n} variant="neutral">{n}</Badge>)}
+                return (
+                  <div className="incident-item" key={inc.id}>
+                    <div className={`incident-dot incident-dot-${inc.status === 'resolved' ? 'resolved' : badgeVariant}`}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {inc.status === 'resolved'
+                          ? <polyline points="20 6 9 17 4 12" />
+                          : <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
+                        }
+                      </svg>
                     </div>
-                    <div className="incident-meta">{formatDateTime(inc.created_at)}</div>
-                    {inc.description ? <p className="incident-description">{inc.description}</p> : null}
-                    {(inc.incident_updates || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((u) => (
-                      <div key={u.id} style={{ marginTop: 'var(--space-8)', paddingLeft: 'var(--space-12)', borderLeft: '2px solid var(--border-secondary)' }}>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{u.message}</p>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-quaternary)' }}>{formatDateTime(u.created_at)} — {u.status}</span>
+                    <div className="incident-content">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', flexWrap: 'wrap' }}>
+                        <span className="incident-title">{inc.title}</span>
+                        <Badge variant={badgeVariant}>{inc.status}</Badge>
+                        {compNames.map((n) => <Badge key={n} variant="neutral">{n}</Badge>)}
                       </div>
-                    ))}
-                    {inc.status !== 'resolved' ? (
-                      <div style={{ marginTop: 'var(--space-8)' }}>
-                        <Button variant="subtle" size="sm" onClick={() => { setShowUpdateIncident(inc); setUpdateStatus(inc.status as IncidentStatus) }}>
-                          Add Update
-                        </Button>
-                      </div>
-                    ) : null}
+                      <div className="incident-meta">{formatDateTime(inc.created_at)}</div>
+                      {inc.description ? <p className="incident-description">{inc.description}</p> : null}
+                      {(inc.incident_updates || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((u) => (
+                        <div key={u.id} style={{ marginTop: 'var(--space-8)', paddingLeft: 'var(--space-12)', borderLeft: '2px solid var(--border-secondary)' }}>
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{u.message}</p>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-quaternary)' }}>{formatDateTime(u.created_at)} — {u.status}</span>
+                        </div>
+                      ))}
+                      {inc.status !== 'resolved' ? (
+                        <div style={{ marginTop: 'var(--space-8)' }}>
+                          <Button variant="subtle" size="sm" onClick={() => { setShowUpdateIncident(inc); setUpdateStatus(inc.status as IncidentStatus) }}>
+                            Add Update
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
+                )
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Danger Zone */}
@@ -344,7 +357,7 @@ function EditProject({ projectId }: { projectId: string }) {
         <div className="editor-section-header">
           <h2 className="editor-section-title" style={{ color: 'var(--status-red)' }}>Danger Zone</h2>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="editor-section-body" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <p style={{ fontSize: '0.9375rem', fontWeight: 'var(--fw-medium)', color: 'var(--text-primary)' }}>Delete this project</p>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>This action cannot be undone.</p>

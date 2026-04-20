@@ -20,24 +20,31 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const result = await login(email, password)
-    if (result.success) {
-      router.push('/dashboard')
-    } else {
-      setError(result.error || 'Login failed.')
+    try {
+      const result = await login(email, password)
+      if (result.success) {
+        router.push('/dashboard')
+      } else {
+        setError(result.error || 'Login failed.')
+      }
+    } catch (err) {
+      setError('Connection error. Please try again.')
+      console.error('Login error:', err)
     }
     setLoading(false)
   }
 
   return (
     <div className="auth-page">
-      <div className="auth-container">
-        <Link href="/" className="auth-logo">
-          <div className="landing-nav-logo-icon">P</div>
-          PulsePages
-        </Link>
-        <h1 className="auth-title">Welcome back</h1>
-        <p className="auth-subtitle">Sign in to your account</p>
+      <div className="auth-card">
+        <div className="auth-header">
+          <Link href="/" className="auth-logo">
+            <div className="landing-nav-logo-icon">P</div>
+            PulsePages
+          </Link>
+          <h1 className="auth-title">Welcome back</h1>
+          <p className="auth-subtitle">Sign in to your account</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <Input
@@ -63,7 +70,7 @@ export default function LoginPage() {
             autoComplete="current-password"
           />
 
-          {error ? <div className="auth-error" id="login-error">{error}</div> : null}
+          {error ? <div className="auth-error" id="login-error" style={{ color: 'var(--status-red)', fontSize: '0.8125rem' }}>{error}</div> : null}
 
           <Button
             type="submit"
@@ -77,7 +84,7 @@ export default function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          Don&apos;t have an account? <Link href="/register" className="auth-link">Sign up</Link>
+          Don&apos;t have an account? <Link href="/register">Sign up</Link>
         </p>
       </div>
     </div>

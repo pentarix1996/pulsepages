@@ -23,29 +23,36 @@ export default function RegisterPage() {
     setInfo('')
     setLoading(true)
 
-    const result = await register(name, email, password)
+    try {
+      const result = await register(name, email, password)
 
-    if (result.success) {
-      if (result.error) {
-        setInfo(result.error)
+      if (result.success) {
+        if (result.error) {
+          setInfo(result.error)
+        } else {
+          router.push('/dashboard')
+        }
       } else {
-        router.push('/dashboard')
+        setError(result.error || 'Registration failed.')
       }
-    } else {
-      setError(result.error || 'Registration failed.')
+    } catch (err) {
+      setError('Connection error. Please try again.')
+      console.error('Register error:', err)
     }
     setLoading(false)
   }
 
   return (
     <div className="auth-page">
-      <div className="auth-container">
-        <Link href="/" className="auth-logo">
-          <div className="landing-nav-logo-icon">P</div>
-          PulsePages
-        </Link>
-        <h1 className="auth-title">Create your account</h1>
-        <p className="auth-subtitle">Start monitoring your services in seconds</p>
+      <div className="auth-card">
+        <div className="auth-header">
+          <Link href="/" className="auth-logo">
+            <div className="landing-nav-logo-icon">P</div>
+            PulsePages
+          </Link>
+          <h1 className="auth-title">Create your account</h1>
+          <p className="auth-subtitle">Start monitoring your services in seconds</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <Input
@@ -83,7 +90,7 @@ export default function RegisterPage() {
             autoComplete="new-password"
           />
 
-          {error ? <div className="auth-error" id="register-error">{error}</div> : null}
+          {error ? <div className="auth-error" id="register-error" style={{ color: 'var(--status-red)', fontSize: '0.8125rem' }}>{error}</div> : null}
           {info ? <div className="auth-info" id="register-info" style={{ color: 'var(--status-emerald)', fontSize: '0.8125rem' }}>{info}</div> : null}
 
           <Button
@@ -98,7 +105,7 @@ export default function RegisterPage() {
         </form>
 
         <p className="auth-footer">
-          Already have an account? <Link href="/login" className="auth-link">Sign in</Link>
+          Already have an account? <Link href="/login">Sign in</Link>
         </p>
       </div>
     </div>

@@ -33,9 +33,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   return (
-    <ToastContext value={{ toasts, addToast, removeToast }}>
+    <ToastContext.Provider value={{ toasts, addToast, removeToast }}>
       {children}
-    </ToastContext>
+    </ToastContext.Provider>
   )
 }
 
