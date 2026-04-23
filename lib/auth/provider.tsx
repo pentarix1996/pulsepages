@@ -1,6 +1,13 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  type ReactNode,
+} from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeInput, validateEmail } from '@/lib/utils/security'
 import type { UserData, Plan } from '@/lib/types'
@@ -20,71 +27,145 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null)
+  const [authUser, setAuthUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [supabase] = useState(() => createClient())
 
-  const fetchProfile = useCallback(async (authUser: User): Promise<UserData> => {
+  const fetchProfile = useCallback(async (currentAuthUser: User): Promise<UserData> => {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', authUser.id)
+      .eq('id', currentAuthUser.id)
       .single()
 
     if (!error && data) {
       return {
-        id: authUser.id,
-        email: authUser.email || '',
+        id: currentAuthUser.id,
+        email: currentAuthUser.email || '',
         name: data.name || '',
         plan: data.plan || 'free',
       }
     }
 
     return {
-      id: authUser.id,
-      email: authUser.email || '',
-      name: authUser.user_metadata?.name || 'User',
+      id: currentAuthUser.id,
+      email: currentAuthUser.email || '',
+      name: currentAuthUser.user_metadata?.name || 'User',
       plan: 'free',
     }
   }, [supabase])
 
+  // Inicialización de sesión
   useEffect(() => {
     let mounted = true
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    const init = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+        if (error) throw error
+
         if (!mounted) return
 
-        try {
-          if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            if (session?.user) {
-              const userData = await fetchProfile(session.user)
-              if (mounted) setUser(userData)
-            }
-            if (mounted) setIsLoading(false)
-          } else if (event === 'SIGNED_OUT') {
-            setUser(null)
-            setIsLoading(false)
-          }
-        } catch (err) {
-          console.error('Auth state change error:', err)
-          if (mounted) setIsLoading(false)
+        setAuthUser(data.session?.user ?? null)
+
+        if (!data.session?.user) {
+          setUser(null)
+          setIsLoading(false)
+        }
+      } catch (err) {
+        console.error('Session init error:', err)
+        if (mounted) {
+          setAuthUser(null)
+          setUser(null)
+          setIsLoading(false)
         }
       }
-    )
+    }
+
+    void init()
 
     return () => {
       mounted = false
+    }
+  }, [supabase])
+
+  // Listener de auth: SIN async y SIN llamadas a Supabase dentro
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session?.user) {
+        setAuthUser(null)
+        setUser(null)
+        setIsLoading(false)
+        return
+      }
+
+      // INITIAL_SESSION / SIGNED_IN / TOKEN_REFRESHED
+      setAuthUser(session.user)
+    })
+
+    return () => {
       subscription.unsubscribe()
     }
-  }, [supabase, fetchProfile])
+  }, [supabase])
+
+  // Carga de perfil separada del evento de auth
+  useEffect(() => {
+    let cancelled = false
+
+    const loadProfile = async () => {
+      if (!authUser) return
+
+      setIsLoading(true)
+
+      try {
+        const userData = await fetchProfile(authUser)
+        if (!cancelled) {
+          setUser(userData)
+        }
+      } catch (err) {
+        console.error('Profile load error:', err)
+        if (!cancelled) {
+          setUser({
+            id: authUser.id,
+            email: authUser.email || '',
+            name: authUser.user_metadata?.name || 'User',
+            plan: 'free',
+          })
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    if (!authUser) {
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
+
+    void loadProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authUser?.id, fetchProfile])
 
   const login = useCallback(async (email: string, password: string) => {
     email = sanitizeInput(email)
-    if (!email || !password) return { success: false, error: 'Email and password are required.' }
-    if (!validateEmail(email)) return { success: false, error: 'Invalid email format.' }
+
+    if (!email || !password) {
+      return { success: false, error: 'Email and password are required.' }
+    }
+
+    if (!validateEmail(email)) {
+      return { success: false, error: 'Invalid email format.' }
+    }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+
       if (error) {
         if (error.message.includes('Invalid login credentials')) {
           return { success: false, error: 'Incorrect email or password.' }
@@ -92,25 +173,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: error.message }
       }
 
-      if (data.user) {
-        const userData = await fetchProfile(data.user)
-        setUser(userData)
-      }
+      // No hagas fetchProfile aquí.
+      // onAuthStateChange + efecto de perfil se encargan.
       return { success: true }
     } catch (err) {
       console.error('Login error:', err)
       return { success: false, error: 'Connection error. Please check your internet connection.' }
     }
-  }, [supabase, fetchProfile])
+  }, [supabase])
 
   const register = useCallback(async (name: string, email: string, password: string) => {
     name = sanitizeInput(name)
     email = sanitizeInput(email)
 
-    if (!name || !email || !password) return { success: false, error: 'All fields are required.' }
-    if (name.length < 2 || name.length > 50) return { success: false, error: 'Name must be 2-50 characters.' }
-    if (!validateEmail(email)) return { success: false, error: 'Invalid email format.' }
-    if (password.length < 8) return { success: false, error: 'Password must be at least 8 characters long.' }
+    if (!name || !email || !password) {
+      return { success: false, error: 'All fields are required.' }
+    }
+    if (name.length < 2 || name.length > 50) {
+      return { success: false, error: 'Name must be 2-50 characters.' }
+    }
+    if (!validateEmail(email)) {
+      return { success: false, error: 'Invalid email format.' }
+    }
+    if (password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters long.' }
+    }
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -125,19 +212,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: true, error: 'Please check your email to confirm your account.' }
       }
 
-      if (data.user) {
-        const userData = await fetchProfile(data.user)
-        setUser(userData)
-      }
+      // No hagas fetchProfile aquí.
       return { success: true }
     } catch (err) {
       console.error('Register error:', err)
       return { success: false, error: 'Connection error. Please check your internet connection.' }
     }
-  }, [supabase, fetchProfile])
+  }, [supabase])
 
   const logout = useCallback(async () => {
     await supabase.auth.signOut()
+    setAuthUser(null)
     setUser(null)
   }, [supabase])
 
@@ -146,7 +231,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (updates.name) {
       const name = sanitizeInput(updates.name)
-      if (name.length < 2 || name.length > 50) return { success: false, error: 'Name must be 2-50 characters.' }
+      if (name.length < 2 || name.length > 50) {
+        return { success: false, error: 'Name must be 2-50 characters.' }
+      }
 
       const { error } = await supabase
         .from('profiles')
@@ -154,15 +241,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id)
 
       if (error) return { success: false, error: error.message }
-      setUser((prev) => prev ? { ...prev, name } : prev)
+      setUser((prev) => (prev ? { ...prev, name } : prev))
     }
 
     if (updates.email) {
       const newEmail = sanitizeInput(updates.email)
-      if (!validateEmail(newEmail)) return { success: false, error: 'Invalid email format.' }
+      if (!validateEmail(newEmail)) {
+        return { success: false, error: 'Invalid email format.' }
+      }
+
       const { error } = await supabase.auth.updateUser({ email: newEmail })
       if (error) return { success: false, error: error.message }
-      setUser((prev) => prev ? { ...prev, email: newEmail } : prev)
+
+      setUser((prev) => (prev ? { ...prev, email: newEmail } : prev))
     }
 
     return { success: true }
@@ -170,8 +261,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const changePlan = useCallback(async (plan: Plan) => {
     if (!user) return { success: false, error: 'Not authenticated.' }
+
     const validPlans: Plan[] = ['free', 'pro', 'business']
-    if (!validPlans.includes(plan)) return { success: false, error: 'Invalid plan.' }
+    if (!validPlans.includes(plan)) {
+      return { success: false, error: 'Invalid plan.' }
+    }
 
     const { error } = await supabase
       .from('profiles')
@@ -179,12 +273,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', user.id)
 
     if (error) return { success: false, error: error.message }
-    setUser((prev) => prev ? { ...prev, plan } : prev)
+
+    setUser((prev) => (prev ? { ...prev, plan } : prev))
     return { success: true }
   }, [user, supabase])
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateProfile, changePlan }}>
+    <AuthContext.Provider
+      value={{ user, isLoading, login, register, logout, updateProfile, changePlan }}
+    >
       {children}
     </AuthContext.Provider>
   )
