@@ -27,7 +27,7 @@ const plans = [
     monthly: 29,
     annual: 24,
     description: 'For organizations that need maximum reliability.',
-    features: ['Unlimited status pages', 'Unlimited components', '1-year incident history', 'White-label branding', 'Priority support', 'SSO & SAML', 'SLA guarantee'],
+    features: ['Unlimited status pages', 'Unlimited components', 'Unlimited incident history', 'Priority support'],
     cta: 'Select Business',
     featured: false,
   },
