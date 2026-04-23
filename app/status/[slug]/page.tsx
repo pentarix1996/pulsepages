@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
-import { getOverallStatus, getStatusLabel, getStatusDotClass, getStatusColor, uptimePercentage, formatDateTime } from '@/lib/utils/helpers'
+import { getOverallStatus, getStatusLabel, getStatusDotClass, getStatusColor, formatDateTime, calculateUptimeFromHistory, UPTIME_HISTORY_DAYS } from '@/lib/utils/helpers'
 import { filterIncidentsByPlan } from '@/lib/utils/plan-limits'
 import type { Project, Incident, Component, Plan } from '@/lib/types'
 import Link from 'next/link'
@@ -59,7 +59,7 @@ export default async function StatusPage({ params }: StatusPageParams) {
 
   const overallStatus = getOverallStatus(components)
   const incidents = filterIncidentsByPlan(allIncidents, plan)
-  const uptime = uptimePercentage(incidents)
+  const uptime = await calculateUptimeFromHistory(supabase, project.id, UPTIME_HISTORY_DAYS)
   const activeIncidents = incidents.filter((i) => i.status !== 'resolved')
   const recentResolved = incidents.filter((i) => i.status === 'resolved').slice(0, 5)
 
@@ -119,7 +119,7 @@ export default async function StatusPage({ params }: StatusPageParams) {
                   .filter(Boolean)
                 return (
                   <div className="incident-item" key={inc.id}>
-                    <div className={`incident-dot incident-dot-${inc.severity === 'danger' ? 'danger' : inc.severity === 'warning' ? 'warning' : 'info'}`}>
+                    <div className={`incident-dot incident-dot-${inc.severity === 'critical' || inc.severity === 'high' ? 'danger' : inc.severity === 'medium' ? 'warning' : 'info'}`}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
                     </div>
                     <div className="incident-content">

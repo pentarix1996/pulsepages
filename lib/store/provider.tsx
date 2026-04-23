@@ -1,14 +1,42 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/provider'
-import type { Project, Incident, Component, IncidentUpdate } from '@/lib/types'
+import { createSnapshot, restoreSnapshot } from '@/lib/store/snapshot'
+import { getComponentStatusFromSeverity, getWorseStatus, getHighestSeverityStatus, insertStatusHistoryIfChanged } from '@/lib/utils/helpers'
+import type { Project, Incident, Component, IncidentUpdate, ComponentStatus, IncidentSeverity } from '@/lib/types'
+
+interface PaginationState {
+  page: number
+  limit: number
+  totalCount: number
+}
+
+interface FilterState {
+  projectId: string | null
+  componentId: string | null
+  dateFrom: string | null
+  dateTo: string | null
+}
 
 interface StoreContextType {
   projects: Project[]
   incidents: Incident[]
   isLoading: boolean
+  errors: string[]
+  isOffline: boolean
+  // Pagination state
+  pagination: PaginationState
+  filters: FilterState
+  incidentsPage: Incident[]
+  isPaginating: boolean
+  // Pagination actions
+  setFilters: (filters: Partial<FilterState>) => void
+  setPage: (page: number) => void
+  fetchIncidentsPage: (pageOverride?: number) => Promise<void>
+  addError: (error: string) => void
+  clearErrors: () => void
   addProject: (data: { name: string; slug: string; description: string; userId: string }) => Promise<{ success: boolean; error?: string; project?: Project }>
   updateProject: (id: string, updates: Partial<Project>) => Promise<{ success: boolean; error?: string }>
   deleteProject: (id: string) => Promise<{ success: boolean; error?: string }>
@@ -22,17 +50,48 @@ interface StoreContextType {
   getProjectBySlug: (slug: string) => Project | undefined
   getIncidentsByProject: (projectId: string) => Incident[]
   getIncidentById: (id: string) => Incident | undefined
+  getDeduplicatedComponentNames: (projectId?: string) => { name: string; projectCount: number }[]
   refreshData: () => Promise<void>
 }
 
 const StoreContext = createContext<StoreContextType | null>(null)
 
-export function StoreProvider({ children }: { children: ReactNode }) {
+interface StoreProviderProps {
+  children: ReactNode
+  toastFn?: (message: string, variant?: 'success' | 'warning' | 'error' | 'info') => void
+}
+
+export function StoreProvider({ children, toastFn }: StoreProviderProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [errors, setErrors] = useState<string[]>([])
+  const [isOffline, setIsOffline] = useState(false)
+
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 10, totalCount: 0 })
+  const [filters, setFiltersState] = useState<FilterState>({
+    projectId: null,
+    componentId: null,
+    dateFrom: null,
+    dateTo: null,
+  })
+  const [incidentsPage, setIncidentsPage] = useState<Incident[]>([])
+  const [isPaginating, setIsPaginating] = useState(false)
+
+  // Refs to avoid stale closures and prevent infinite loop in useEffect
+  const paginationRef = useRef(pagination)
+  const filtersRef = useRef(filters)
+
   const { user, isLoading: authLoading } = useAuth()
   const supabase = useMemo(() => createClient(), [])
+
+  // Toast helper - safe for SSR since toastFn is injected via props
+  const toast = useCallback((message: string, variant: 'success' | 'warning' | 'error' | 'info' = 'error') => {
+    if (toastFn && typeof window !== 'undefined') {
+      toastFn(message, variant)
+    }
+  }, [toastFn])
 
   const loadData = useCallback(async () => {
     if (!user) {
@@ -45,7 +104,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
 
     const [projectsRes, incidentsRes] = await Promise.all([
-      supabase.from('projects').select('*, components(*)'),
+      supabase.from('projects').select('*, components(*)').eq('user_id', user.id),
       supabase.from('incidents').select('*, incident_updates(*)'),
     ])
 
@@ -59,53 +118,232 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [user, supabase])
 
+  const fetchIncidentsPage = useCallback(async (pageOverride?: number) => {
+    if (!user) return
+
+    // Read latest state from refs; allow override for page number to avoid stale closure bugs
+    const { limit } = paginationRef.current
+    const filters = filtersRef.current
+    const page = pageOverride ?? paginationRef.current.page
+
+    setIsPaginating(true)
+
+    const from = (page - 1) * limit
+    const to = page * limit - 1
+
+    // Base query on incidents table
+    let query = supabase
+      .from('incidents')
+      .select('*, incident_updates(*)', { count: 'exact' })
+
+    // Apply project filter
+    if (filters.projectId) {
+      query = query.eq('project_id', filters.projectId)
+    }
+
+    // Apply date range filters
+    if (filters.dateFrom) {
+      query = query.gte('created_at', filters.dateFrom)
+    }
+    if (filters.dateTo) {
+      // Add one day to include the full end date
+      const endDate = new Date(filters.dateTo)
+      endDate.setDate(endDate.getDate() + 1)
+      query = query.lt('created_at', endDate.toISOString().split('T')[0])
+    }
+
+    // Apply component filter (by name → find all component IDs with that name)
+    if (filters.componentId) {
+      // Get all components with this name across ALL projects
+      const { data: matchingComponents } = await supabase
+        .from('components')
+        .select('id')
+        .eq('name', filters.componentId)
+
+      if (matchingComponents && matchingComponents.length > 0) {
+        const componentIds = matchingComponents.map((c: { id: string }) => c.id)
+        // Filter incidents where component_ids overlaps with matching component IDs
+        query = query.overlaps('component_ids', componentIds)
+      } else {
+        // No components with this name → no results
+        setIncidentsPage([])
+        setPagination(prev => ({ ...prev, totalCount: 0 }))
+        setIsPaginating(false)
+        return
+      }
+    }
+
+    // Apply user ownership filter (for global /incidents page)
+    // Projects belong to user
+    if (!filters.projectId) {
+      const { data: userProjectIds } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('user_id', user.id)
+
+      if (userProjectIds && userProjectIds.length > 0) {
+        query = query.in('project_id', userProjectIds.map((p: { id: string }) => p.id))
+      } else {
+        // No projects → no incidents
+        setIncidentsPage([])
+        setPagination(prev => ({ ...prev, totalCount: 0 }))
+        setIsPaginating(false)
+        return
+      }
+    }
+
+    // Apply pagination range
+    query = query.range(from, to)
+
+    // Order by created_at DESC
+    query = query.order('created_at', { ascending: false })
+
+    const { data, count, error } = await query
+
+    if (!error && data) {
+      setIncidentsPage(data as Incident[])
+      setPagination(prev => {
+        const updated = { ...prev, totalCount: count || 0 }
+        paginationRef.current = updated
+        return updated
+      })
+    } else if (error) {
+      // Handle error - could add to errors state
+      console.error('Error fetching incidents page:', error.message)
+    }
+
+    setIsPaginating(false)
+  }, [user, supabase])
+
+  const setFilters = useCallback((newFilters: Partial<FilterState>) => {
+    setFiltersState(prev => {
+      const updated = { ...prev, ...newFilters }
+      filtersRef.current = updated
+      return updated
+    })
+    // Always reset to page 1 when filters change
+    setPagination(prev => ({ ...prev, page: 1 }))
+  }, [])
+
+  const setPage = useCallback((page: number) => {
+    setPagination(prev => {
+      const updated = { ...prev, page }
+      paginationRef.current = updated
+      return updated
+    })
+  }, [])
+
+  const getDeduplicatedComponentNames = useCallback((projectId?: string) => {
+    const filteredProjects = projectId
+      ? projects.filter(p => p.id === projectId)
+      : projects
+
+    const nameMap = new Map<string, string[]>()
+
+    filteredProjects.forEach(project => {
+      project.components?.forEach(comp => {
+        if (!nameMap.has(comp.name)) {
+          nameMap.set(comp.name, [])
+        }
+        nameMap.get(comp.name)!.push(project.id)
+      })
+    })
+
+    return Array.from(nameMap.entries()).map(([name, projectIds]) => ({
+      name,
+      projectCount: projectIds.length,
+    }))
+  }, [projects])
+
   useEffect(() => {
     if (authLoading) return
     loadData()
+    fetchIncidentsPage()
+    // Intentionally missing fetchIncidentsPage from deps — it's called imperatively,
+    // not as a reactive effect. Adding it would cause infinite loops since
+    // fetchIncidentsPage's internal logic updates state that triggers re-renders.
   }, [loadData, authLoading])
 
+  const addError = useCallback((error: string) => {
+    setErrors((prev) => [...prev, error])
+  }, [])
+
+  const clearErrors = useCallback(() => {
+    setErrors([])
+  }, [])
+
   const addProject = useCallback(async (data: { name: string; slug: string; description: string; userId: string }) => {
+    const snapshot = createSnapshot({ projects, incidents })
+
     const { data: newProject, error } = await supabase
       .from('projects')
       .insert([{ name: data.name, slug: data.slug, description: data.description, user_id: data.userId }])
       .select()
       .single()
 
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
 
     const project: Project = { ...newProject, components: [] }
     setProjects((prev) => [...prev, project])
     return { success: true, project }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {
-    const { error } = await supabase.from('projects').update(updates).eq('id', id)
-    if (error) return { success: false, error: error.message }
+    const snapshot = createSnapshot({ projects, incidents })
 
     setProjects((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates, updated_at: new Date().toISOString() } : p))
     )
+
+    const { error } = await supabase.from('projects').update(updates).eq('id', id)
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const deleteProject = useCallback(async (id: string) => {
-    const { error } = await supabase.from('projects').delete().eq('id', id)
-    if (error) return { success: false, error: error.message }
+    const snapshot = createSnapshot({ projects, incidents })
 
     setProjects((prev) => prev.filter((p) => p.id !== id))
     setIncidents((prev) => prev.filter((i) => i.project_id !== id))
+
+    const { error } = await supabase.from('projects').delete().eq('id', id)
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const addComponent = useCallback(async (projectId: string, name: string) => {
     try {
+      const snapshot = createSnapshot({ projects, incidents })
+
       const { data, error } = await supabase
         .from('components')
         .insert([{ project_id: projectId, name, status: 'operational' }])
         .select()
         .single()
 
-      if (error) return { success: false, error: error.message }
+      if (error) {
+        restoreSnapshot(snapshot)
+        toast(error.message, 'error')
+        addError(error.message)
+        return { success: false, error: error.message }
+      }
 
       setProjects((prev) =>
         prev.map((p) =>
@@ -116,14 +354,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       )
       return { success: true, component: data as Component }
     } catch (err: unknown) {
-      console.error('Error adding component:', err)
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      toast(errorMsg, 'error')
+      addError(errorMsg)
+      return { success: false, error: errorMsg }
     }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const updateComponentStatus = useCallback(async (componentId: string, projectId: string, status: string) => {
-    const { error } = await supabase.from('components').update({ status }).eq('id', componentId)
-    if (error) return { success: false, error: error.message }
+    const snapshot = createSnapshot({ projects, incidents })
 
     setProjects((prev) =>
       prev.map((p) =>
@@ -137,12 +376,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : p
       )
     )
+
+    const { error } = await supabase.from('components').update({ status }).eq('id', componentId)
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
+
+    // Insert history record for manual status change
+    await insertStatusHistoryIfChanged(supabase, componentId, status, 'manual')
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const deleteComponent = useCallback(async (componentId: string, projectId: string) => {
-    const { error } = await supabase.from('components').delete().eq('id', componentId)
-    if (error) return { success: false, error: error.message }
+    const snapshot = createSnapshot({ projects, incidents })
 
     setProjects((prev) =>
       prev.map((p) =>
@@ -151,8 +401,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           : p
       )
     )
+
+    const { error } = await supabase.from('components').delete().eq('id', componentId)
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const addIncident = useCallback(async (data: {
     projectId: string
@@ -163,6 +422,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     components: string[]
   }) => {
     try {
+      const snapshot = createSnapshot({ projects, incidents })
+
       const { data: incData, error: incError } = await supabase
         .from('incidents')
         .insert([{
@@ -176,7 +437,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .select()
         .single()
 
-      if (incError) return { success: false, error: incError.message }
+      if (incError) {
+        restoreSnapshot(snapshot)
+        toast(incError.message, 'error')
+        addError(incError.message)
+        return { success: false, error: incError.message }
+      }
 
       const { data: updateData } = await supabase
         .from('incident_updates')
@@ -194,16 +460,78 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       } as Incident
 
       setIncidents((prev) => [newIncident, ...prev])
+
+      // Auto-update component statuses based on severity
+      // Bug fix 1: Skip if incident is created as resolved (no impact on components)
+      // Bug fix 3: Only upgrade status, never downgrade based on lower-severity incidents
+      // Fix: Low severity does NOT affect component status (doesn't count against uptime)
+      if (data.status !== 'resolved' && data.status !== 'maintenance' && data.components.length > 0 && data.severity !== 'low') {
+        const targetStatus = getComponentStatusFromSeverity(data.severity as IncidentSeverity)
+
+        // Update each affected component
+        for (const compId of data.components) {
+          // Find current component status
+          const currentComp = projects
+            .find((p) => p.id === data.projectId)
+            ?.components.find((c) => c.id === compId)
+          const currentStatus = currentComp?.status || 'operational'
+
+          // Only upgrade (never downgrade) based on existing status
+          const newStatus = getWorseStatus(currentStatus, targetStatus)
+
+          // Only update if status actually changed
+          if (newStatus !== currentStatus) {
+            await supabase.from('components').update({ status: newStatus }).eq('id', compId)
+            await insertStatusHistoryIfChanged(supabase, compId, newStatus, 'incident', incData.id)
+          }
+        }
+
+        // Update local state
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === data.projectId
+              ? {
+                  ...p,
+                  components: p.components.map((c) => {
+                    if (!data.components.includes(c.id)) return c
+                    const target = getComponentStatusFromSeverity(data.severity as IncidentSeverity)
+                    const newStatus = getWorseStatus(c.status, target)
+                    return newStatus !== c.status ? { ...c, status: newStatus as ComponentStatus } : c
+                  }),
+                }
+              : p
+          )
+        )
+      }
+
       return { success: true, incident: newIncident }
     } catch (err: unknown) {
-      console.error('Error adding incident:', err)
-      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' }
+      const errorMsg = err instanceof Error ? err.message : 'Unknown error'
+      toast(errorMsg, 'error')
+      addError(errorMsg)
+      return { success: false, error: errorMsg }
     }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const updateIncident = useCallback(async (id: string, updates: Record<string, unknown>, message?: string) => {
+    const snapshot = createSnapshot({ projects, incidents })
+    const incident = incidents.find((i) => i.id === id)
+
+    setIncidents((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i
+        const updated = { ...i, ...updates } as Incident
+        return updated
+      })
+    )
+
     const { error } = await supabase.from('incidents').update(updates).eq('id', id)
-    if (error) return { success: false, error: error.message }
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
 
     let newHistoryItem: IncidentUpdate | null = null
     if (message && updates.status) {
@@ -213,28 +541,69 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         .select()
         .single()
       newHistoryItem = data as IncidentUpdate | null
+
+      setIncidents((prev) =>
+        prev.map((i) => {
+          if (i.id !== id) return i
+          const updated = { ...i, ...updates } as Incident
+          if (newHistoryItem) {
+            updated.incident_updates = [newHistoryItem, ...(i.incident_updates || [])]
+          }
+          return updated
+        })
+      )
     }
 
-    setIncidents((prev) =>
-      prev.map((i) => {
-        if (i.id !== id) return i
-        const updated = { ...i, ...updates } as Incident
-        if (newHistoryItem) {
-          updated.incident_updates = [newHistoryItem, ...(i.incident_updates || [])]
-        }
-        return updated
-      })
-    )
+    // Auto-restore/update components when incident is resolved
+    // Bug fix 2 (final): Calculate post-update incidents state manually since
+    // React state updates are async and we can't rely on 'incidents' closure variable
+    if (updates.status === 'resolved' && incident && incident.component_ids.length > 0) {
+      // Simulate what incidents will look like after setIncidents runs
+      const updatedIncidents = incidents.map((i) =>
+        i.id === id ? { ...i, ...updates } as Incident : i
+      )
+
+      for (const compId of incident.component_ids) {
+        // Get the highest severity status from remaining active incidents
+        const highestStatus = getHighestSeverityStatus(updatedIncidents, compId)
+        const newStatus: ComponentStatus = highestStatus || 'operational'
+
+        // Update in DB
+        await supabase.from('components').update({ status: newStatus }).eq('id', compId)
+
+        // Insert history record (only if status actually changed)
+        await insertStatusHistoryIfChanged(supabase, compId, newStatus, 'incident_resolved', id)
+
+        // Update local state
+        setProjects((prev) =>
+          prev.map((p) => ({
+            ...p,
+            components: p.components.map((c) =>
+              c.id === compId ? { ...c, status: newStatus } : c
+            ),
+          }))
+        )
+      }
+    }
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const deleteIncident = useCallback(async (id: string) => {
-    const { error } = await supabase.from('incidents').delete().eq('id', id)
-    if (error) return { success: false, error: error.message }
+    const snapshot = createSnapshot({ projects, incidents })
 
     setIncidents((prev) => prev.filter((i) => i.id !== id))
+
+    const { error } = await supabase.from('incidents').delete().eq('id', id)
+    if (error) {
+      restoreSnapshot(snapshot)
+      toast(error.message, 'error')
+      addError(error.message)
+      return { success: false, error: error.message }
+    }
+
     return { success: true }
-  }, [supabase])
+  }, [supabase, projects, incidents, toast, addError])
 
   const getProjectById = useCallback((id: string) => projects.find((p) => p.id === id), [projects])
   const getProjectBySlug = useCallback((slug: string) => projects.find((p) => p.slug === slug), [projects])
@@ -247,6 +616,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         projects,
         incidents,
         isLoading,
+        errors,
+        isOffline,
+        // Pagination state
+        pagination,
+        filters,
+        incidentsPage,
+        isPaginating,
+        // Pagination actions
+        setFilters,
+        setPage,
+        fetchIncidentsPage,
+        addError,
+        clearErrors,
         addProject,
         updateProject,
         deleteProject,
@@ -260,6 +642,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         getProjectBySlug,
         getIncidentsByProject,
         getIncidentById,
+        getDeduplicatedComponentNames,
         refreshData: loadData,
       }}
     >

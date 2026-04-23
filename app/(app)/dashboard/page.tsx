@@ -1,11 +1,14 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth/provider'
 import { useStore } from '@/lib/store/provider'
 import { useToast } from '@/hooks/useToast'
 import { canCreateProject } from '@/lib/utils/plan-limits'
-import { getOverallStatus, getStatusDotClass, uptimePercentage, timeAgo } from '@/lib/utils/helpers'
+import { getOverallStatus, getStatusDotClass, timeAgo } from '@/lib/utils/helpers'
+import { calculateUptimeFromHistory, UPTIME_HISTORY_DAYS } from '@/lib/utils/helpers'
+import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/StatusDot'
 
 export default function DashboardPage() {
@@ -13,6 +16,8 @@ export default function DashboardPage() {
   const { projects, incidents } = useStore()
   const { addToast } = useToast()
   const router = useRouter()
+  const supabase = createClient()
+  const [uptimeByProject, setUptimeByProject] = useState<Record<string, string>>({})
 
   if (!user) return null
 
@@ -26,6 +31,24 @@ export default function DashboardPage() {
     }
     router.push('/project/new')
   }
+
+  // Calculate uptime for each project based on status history
+  useEffect(() => {
+    if (userProjects.length === 0) return
+
+    const fetchUptimes = async () => {
+      const results: Record<string, string> = {}
+      await Promise.all(
+        userProjects.map(async (project) => {
+          const uptime = await calculateUptimeFromHistory(supabase, project.id, UPTIME_HISTORY_DAYS)
+          results[project.id] = uptime
+        })
+      )
+      setUptimeByProject(results)
+    }
+
+    fetchUptimes()
+  }, [userProjects, supabase])
 
   return (
     <>
@@ -44,7 +67,7 @@ export default function DashboardPage() {
         {userProjects.map((project) => {
           const overallStatus = getOverallStatus(project.components)
           const projectIncidents = incidents.filter((i) => i.project_id === project.id)
-          const uptime = uptimePercentage(projectIncidents)
+          const uptime = uptimeByProject[project.id] || '100.00'
           const activeIncidents = projectIncidents.filter((i) => i.status !== 'resolved').length
 
           return (

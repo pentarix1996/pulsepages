@@ -1,5 +1,5 @@
 export type ComponentStatus = 'operational' | 'degraded' | 'partial_outage' | 'major_outage' | 'maintenance'
-export type IncidentSeverity = 'info' | 'warning' | 'danger'
+export type IncidentSeverity = 'critical' | 'high' | 'medium' | 'low'
 export type IncidentStatus = 'investigating' | 'identified' | 'monitoring' | 'resolved' | 'maintenance'
 export type Plan = 'free' | 'pro' | 'business'
 
@@ -55,4 +55,13 @@ export interface UserData {
   email: string
   name: string
   plan: Plan
+}
+
+export interface ComponentStatusHistory {
+  id: string
+  component_id: string
+  status: ComponentStatus
+  changed_at: string
+  reason: 'incident' | 'manual' | 'maintenance' | 'incident_resolved'
+  incident_id: string | null
 }

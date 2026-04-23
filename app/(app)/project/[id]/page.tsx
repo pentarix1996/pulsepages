@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/provider'
 import { useStore } from '@/lib/store/provider'
@@ -12,6 +12,8 @@ import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
 import { StatusDot } from '@/components/ui/StatusDot'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { FilterBar } from '@/components/ui/FilterBar'
+import { Pagination } from '@/components/ui/Pagination'
 import { canAddComponent } from '@/lib/utils/plan-limits'
 import { getStatusLabel, formatDateTime, getSeverityBadgeVariant, copyToClipboard } from '@/lib/utils/helpers'
 import { sanitizeInput, validateSlug } from '@/lib/utils/security'
@@ -27,9 +29,10 @@ const STATUS_OPTIONS = [
 ]
 
 const SEVERITY_OPTIONS = [
-  { value: 'info', label: 'Info' },
-  { value: 'warning', label: 'Warning' },
-  { value: 'danger', label: 'Critical' },
+  { value: 'critical', label: 'Critical' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
 ]
 
 const INCIDENT_STATUS_OPTIONS = [
@@ -116,7 +119,24 @@ function NewProjectForm() {
 
 function EditProject({ projectId }: { projectId: string }) {
   const { user } = useAuth()
-  const { getProjectById, getIncidentsByProject, addComponent, updateComponentStatus, deleteComponent, addIncident, updateIncident, deleteProject } = useStore()
+  const {
+    getProjectById,
+    getIncidentsByProject,
+    addComponent,
+    updateComponentStatus,
+    deleteComponent,
+    addIncident,
+    updateIncident,
+    deleteProject,
+    incidentsPage,
+    pagination,
+    filters,
+    isPaginating,
+    setFilters,
+    setPage,
+    fetchIncidentsPage,
+    getDeduplicatedComponentNames,
+  } = useStore()
   const { addToast } = useToast()
   const router = useRouter()
 
@@ -131,7 +151,7 @@ function EditProject({ projectId }: { projectId: string }) {
   const [incTitle, setIncTitle] = useState('')
   const [incDesc, setIncDesc] = useState('')
   const [incStatus, setIncStatus] = useState<IncidentStatus>('investigating')
-  const [incSeverity, setIncSeverity] = useState<IncidentSeverity>('warning')
+  const [incSeverity, setIncSeverity] = useState<IncidentSeverity>('medium')
   const [incComponents, setIncComponents] = useState<string[]>([])
   const [incLoading, setIncLoading] = useState(false)
 
@@ -143,6 +163,32 @@ function EditProject({ projectId }: { projectId: string }) {
 
   const project = getProjectById(projectId)
   const projectIncidents = getIncidentsByProject(projectId)
+  const componentNames = getDeduplicatedComponentNames(projectId)
+
+  // Set project filter on mount and fetch paginated incidents
+  useEffect(() => {
+    if (projectId) {
+      setFilters({ projectId })
+      // Use setTimeout to ensure state updates before fetch
+      setTimeout(() => fetchIncidentsPage(), 0)
+    }
+  }, [projectId, setFilters, fetchIncidentsPage])
+
+  const handleProjectFilterChange = useCallback((newFilters: Partial<typeof filters>) => {
+    setFilters(newFilters)
+    setTimeout(() => fetchIncidentsPage(), 0)
+  }, [setFilters, fetchIncidentsPage])
+
+  const handlePageChange = useCallback((page: number) => {
+    setPage(page)
+    // Pass page number directly to avoid stale closure (state update is async)
+    fetchIncidentsPage(page)
+  }, [setPage, fetchIncidentsPage])
+
+  // After incident mutations, refresh the paginated list
+  const refreshIncidentsPage = useCallback(() => {
+    fetchIncidentsPage()
+  }, [fetchIncidentsPage])
 
   if (!project || !user) {
     return <EmptyState title="Project not found" description="This project doesn't exist or you don't have access." action={<Button variant="primary" onClick={() => router.push('/dashboard')}>Go to Dashboard</Button>} />
@@ -204,6 +250,7 @@ function EditProject({ projectId }: { projectId: string }) {
     setIncComponents([])
     setShowCreateIncident(false)
     addToast('Incident reported!')
+    refreshIncidentsPage()
   }
 
   const handleUpdateIncident = async () => {
@@ -219,6 +266,7 @@ function EditProject({ projectId }: { projectId: string }) {
     setUpdateMsg('')
     setShowUpdateIncident(null)
     addToast('Incident updated!')
+    refreshIncidentsPage()
   }
 
   const handleDeleteProject = async () => {
@@ -300,54 +348,83 @@ function EditProject({ projectId }: { projectId: string }) {
           </Button>
         </div>
 
-        <div className="editor-section-body">
-          {projectIncidents.length === 0 ? (
-            <EmptyState title="No incidents" description="All systems running smoothly." icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>} />
-          ) : (
-            <div className="incident-timeline">
-              {projectIncidents.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((inc) => {
-                const badgeVariant = getSeverityBadgeVariant(inc.status, inc.severity)
-                const compNames = (inc.component_ids || []).map((cid) => {
-                  const comp = project.components.find((c) => c.id === cid)
-                  return comp?.name
-                }).filter(Boolean)
+        <FilterBar
+          projects={[]}
+          componentNames={componentNames}
+          filters={filters}
+          onFilterChange={handleProjectFilterChange}
+          isLoading={isPaginating}
+          showProjectSelect={false}
+        />
 
-                return (
-                  <div className="incident-item" key={inc.id}>
-                    <div className={`incident-dot incident-dot-${inc.status === 'resolved' ? 'resolved' : badgeVariant}`}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        {inc.status === 'resolved'
-                          ? <polyline points="20 6 9 17 4 12" />
-                          : <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
-                        }
-                      </svg>
-                    </div>
-                    <div className="incident-content">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', flexWrap: 'wrap' }}>
-                        <span className="incident-title">{inc.title}</span>
-                        <Badge variant={badgeVariant}>{inc.status}</Badge>
-                        {compNames.map((n) => <Badge key={n} variant="neutral">{n}</Badge>)}
-                      </div>
-                      <div className="incident-meta">{formatDateTime(inc.created_at)}</div>
-                      {inc.description ? <p className="incident-description">{inc.description}</p> : null}
-                      {(inc.incident_updates || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((u) => (
-                        <div key={u.id} style={{ marginTop: 'var(--space-8)', paddingLeft: 'var(--space-12)', borderLeft: '2px solid var(--border-secondary)' }}>
-                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{u.message}</p>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-quaternary)' }}>{formatDateTime(u.created_at)} — {u.status}</span>
-                        </div>
-                      ))}
-                      {inc.status !== 'resolved' ? (
-                        <div style={{ marginTop: 'var(--space-8)' }}>
-                          <Button variant="subtle" size="sm" onClick={() => { setShowUpdateIncident(inc); setUpdateStatus(inc.status as IncidentStatus) }}>
-                            Add Update
-                          </Button>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                )
-              })}
+        <div className="editor-section-body">
+          {isPaginating && incidentsPage.length === 0 ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 'var(--space-32)' }}>
+              <Spinner size={24} />
             </div>
+          ) : incidentsPage.length === 0 ? (
+            <EmptyState
+              title="No incidents"
+              description="All systems running smoothly."
+              icon={<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
+            />
+          ) : (
+            <>
+              <div className="incident-timeline">
+                {incidentsPage.map((inc) => {
+                  const badgeVariant = getSeverityBadgeVariant(inc.status, inc.severity)
+                  const compNames = (inc.component_ids || []).map((cid) => {
+                    const comp = project.components.find((c) => c.id === cid)
+                    return comp?.name
+                  }).filter(Boolean)
+
+                  return (
+                    <div className="incident-item" key={inc.id}>
+                      <div className={`incident-dot incident-dot-${inc.status === 'resolved' ? 'resolved' : badgeVariant}`}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          {inc.status === 'resolved'
+                            ? <polyline points="20 6 9 17 4 12" />
+                            : <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>
+                          }
+                        </svg>
+                      </div>
+                      <div className="incident-content">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-8)', flexWrap: 'wrap' }}>
+                          <span className="incident-title">{inc.title}</span>
+                          <Badge variant={badgeVariant}>{inc.status}</Badge>
+                          {compNames.map((n) => <Badge key={n} variant="neutral">{n}</Badge>)}
+                        </div>
+                        <div className="incident-meta">{formatDateTime(inc.created_at)}</div>
+                        {inc.description ? <p className="incident-description">{inc.description}</p> : null}
+                        {(inc.incident_updates || []).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((u) => (
+                          <div key={u.id} style={{ marginTop: 'var(--space-8)', paddingLeft: 'var(--space-12)', borderLeft: '2px solid var(--border-secondary)' }}>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>{u.message}</p>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-quaternary)' }}>{formatDateTime(u.created_at)} — {u.status}</span>
+                          </div>
+                        ))}
+                        {inc.status !== 'resolved' ? (
+                          <div style={{ marginTop: 'var(--space-8)' }}>
+                            <Button variant="subtle" size="sm" onClick={() => { setShowUpdateIncident(inc); setUpdateStatus(inc.status as IncidentStatus) }}>
+                              Add Update
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {pagination.totalCount > 0 && (
+                <Pagination
+                  page={pagination.page}
+                  limit={pagination.limit}
+                  totalCount={pagination.totalCount}
+                  onPageChange={handlePageChange}
+                  isLoading={isPaginating}
+                />
+              )}
+            </>
           )}
         </div>
       </div>

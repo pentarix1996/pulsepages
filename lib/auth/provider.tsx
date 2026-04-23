@@ -11,7 +11,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { sanitizeInput, validateEmail } from '@/lib/utils/security'
 import type { UserData, Plan } from '@/lib/types'
-import type { User } from '@supabase/supabase-js'
+import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: UserData | null
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Listener de auth: SIN async y SIN llamadas a Supabase dentro
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
       if (event === 'SIGNED_OUT' || !session?.user) {
         setAuthUser(null)
         setUser(null)

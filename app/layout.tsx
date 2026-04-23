@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/lib/auth/provider'
-import { StoreProvider } from '@/lib/store/provider'
+import { StoreProviderWithToast } from '@/components/StoreProviderWithToast'
 import { ToastProvider } from '@/hooks/useToast'
 import { ToastContainer } from '@/components/ui/Toast'
 import '@/styles/globals.css'
@@ -23,12 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AuthProvider>
-          <StoreProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <StoreProviderWithToast>
               {children}
               <ToastContainer />
-            </ToastProvider>
-          </StoreProvider>
+            </StoreProviderWithToast>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

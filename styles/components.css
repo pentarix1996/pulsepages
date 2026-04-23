@@ -625,6 +625,189 @@ select.input-field option {
   text-align: center;
 }
 
+/* Pagination Component */
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
+  padding: var(--space-16) 0;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  background: var(--surface-02);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-comfortable);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: var(--fw-medium);
+  height: 36px;
+  min-width: 36px;
+  padding: 0 var(--space-12);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--surface-04);
+  border-color: var(--border-tertiary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn-active {
+  background: var(--brand-indigo);
+  border-color: var(--brand-indigo);
+  color: #ffffff;
+}
+
+.pagination-btn-active:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.pagination-status {
+  font-size: 0.875rem;
+  color: var(--text-tertiary);
+}
+
+.pagination-status-mobile {
+  display: none;
+}
+
+/* FilterBar Component */
+.filter-bar {
+  background: var(--surface-02);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-comfortable);
+  padding: var(--space-12) var(--space-16);
+  margin-bottom: var(--space-24);
+}
+
+.filter-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  background: var(--surface-02);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-comfortable);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  font-feature-settings: var(--font-features);
+  height: 36px;
+  padding: 0 var(--space-24) 0 var(--space-12);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8f98' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  min-width: 140px;
+}
+
+.filter-select:hover {
+  border-color: var(--border-tertiary);
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--brand-indigo);
+}
+
+.filter-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.filter-date-range {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+
+.date-input {
+  background: var(--surface-02);
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-comfortable);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  height: 36px;
+  padding: 0 var(--space-12);
+  width: 140px;
+  transition: border-color var(--transition-fast);
+}
+
+.date-input:hover {
+  border-color: var(--border-tertiary);
+}
+
+.date-input:focus {
+  outline: none;
+  border-color: var(--brand-indigo);
+}
+
+.date-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+  cursor: pointer;
+}
+
+.date-separator {
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+}
+
+.filter-clear-btn {
+  background: transparent;
+  border: 1px solid var(--border-standard);
+  border-radius: var(--radius-comfortable);
+  color: var(--text-tertiary);
+  font-size: 0.875rem;
+  font-family: var(--font-primary);
+  font-feature-settings: var(--font-features);
+  height: 36px;
+  padding: 0 var(--space-12);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.filter-clear-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-tertiary);
+  background: var(--surface-03);
+}
+
+.filter-clear-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .container {
     padding: 0 var(--space-16);
@@ -638,5 +821,39 @@ select.input-field option {
   .toast {
     min-width: auto;
     max-width: calc(100vw - 32px);
+  }
+
+  .pagination-pills {
+    display: none !important;
+  }
+
+  .pagination-status-mobile {
+    display: inline;
+  }
+
+  .pagination-status-desktop {
+    display: none;
+  }
+
+  .filter-bar-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .filter-date-range {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date-input {
+    width: 100%;
+  }
+
+  .date-separator {
+    text-align: center;
   }
 }

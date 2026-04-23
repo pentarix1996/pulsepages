@@ -82,7 +82,7 @@ describe('filterIncidentsByPlan', () => {
     title: `Incident ${daysAgo}d ago`,
     description: null,
     status: 'resolved',
-    severity: 'warning',
+    severity: 'medium',
     component_ids: [],
     duration: 30,
     created_at: new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString(),

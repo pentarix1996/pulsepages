@@ -5,12 +5,15 @@
 - [ ] **Purga Histórica Diaria (Cron)**: Configurar \`pg_cron\` en Supabase o una Edge Function automatizada para ejecutarse diariamente (00:00). Debe eliminar de la tabla \`incidents\` e \`incident_updates\` los registros cuya fecha de creación (\`created_at\`) tenga mayor antigüedad que la que autoriza el plan (ej. > 7 días en Free, > 30 días en Pro).
 
 ## 🔑 2. Gestión de API Keys
-- [ ] **UI de Gestión de Tokens**: Añadir un nuevo apartado en el Dashboard interno (ej. en `/settings` o nueva pestaña `/api`) explícito para generar y revocar *API Keys*. 
+- [ ] **UI de Gestión de Tokens**: Añadir un nuevo apartado en el Dashboard interno (ej. en `/settings` o nueva pestaña `/api`) explícito para generar y revocar *API Keys*
 - [ ] **Generación Segura**: Programar el motor criptográfico para subir el *hash* de la key generada a nuestra tabla \`api_keys\` y enseñarle al usuario el secreto sin ofuscar una única vez.
-- [ ] **Restringir Inclusión Core**: Ajustar la lógica del Edge Function actual (\`api/index.ts\`) si fuese necesario para que tire error \`403 Forbidden\` ante llamadas con Tokens pertenecientes a dueños en el plan 'free' o cuya API KEY no corresponda a sus proyectos.
+- [ ] **Revocación de API Keys**: Cuando pulsa en "Eliminar API Key", se eliminará de la base de datos, si se pulsa sobre "Regenerar" se eliminará de la base de datos también la vieja y se creará una nueva.
+- [ ] **Funcionalidades por API KEY** Revisa el archivo "supabase/functions/api/index.ts" por si hubiera que retocar algo. Lo que se quiere es que se pueda acceder via API por autenticación via API_TOKEN para poder realizar acciones en la API sobre los proyectos asociados a ese usuario. Tenemos una tabla en supabase de api_keys con el user_id asociado, token_hash, name y created_at. El objetivo final es que el usuario pueda hacer diferentes acciones via API, por ejemplo, crear incidencias, ver el estado de sus servicios, etc. Todos se devolverá en formato JSON.
+
 
 ## 📚 3. Documentación Técnica (Estilo Cursor / Stripe)
 - [ ] **Sistema de Layout de Docs**: Crear la ruta `/docs`. Debe tener de un estilo gráfico diferencial y canónico (Sidebar a la izquierda con el índice en árbol, bloque grande central, modo oscuro nativo, y navegación limpia).
+- [ ] **Documentación API**: Crear una documentación de la API completa, ver la mejor manera de hacer esto.
 - [ ] **Contenido de API REST**: Reflejar fielmente la *base url* definitiva (ej. \`https://api.pulsepages.dev/v1/...\`), autenticación HTTP por \`Bearer\`, *Rate Limits* aplicables, y todos los ejemplos de CURLs y Snippets de NodeJS emulando una API real.
 - [ ] **Enlaces de Accesibilidad**: Inyectar enlaces hacia este panel desde la Navbar del Landing original, el menú de navegación lateral del Dashboard y en el footer del Landing.
 
@@ -20,8 +23,8 @@
 
 ## ✨ 5. Mejoras de Producto (Features Futuras)
 - [ ] **Métricas Reales (Uptimes)**: Cronometrar la vida cronológica exacta de un estado \`degraded\` o \`major_outage\` y construir calculadoras verdaderas de 99.99% de Uptime por cada mes del año para mostrar en la pestaña pública.
-- [ ] **Modo "Mantenimientos Programados"**: Permitir la creación de un incidente temporal en el futuro alertando en color Azul o Gris al visitante de que habrán cortes la próxima semana.
-- [ ] **Monitorización Automática (Pingers)**: Que el usuario nos de una URL real de su web o API (healthcheck) y nuestros propios servidores de Supabase traten de hacer PING cada X tiempo (configurable, no menor a 15 segundos); si falla, abrimos una incidencia por ellos automáticamente. Se deberá añadir una sección de configuración para poder configurar. Esto solo estará disponible para el plan PRO y Business.
+- [ ] **Slug repetidos** Ahora mismo, si el usuario A crea el proyecto "Test Project" y el usuario B trata de crear el mismo proyecto desde su dashboard, le dará error porque ya existe el Slug en la base de datos. Debemos pensar de una manera limpia y escalable de que diferentes usuarios puedan crear el mismo nombre de proyecto. Pero un mismo usuario no pueda crear 2 veces el mismo Proyecto. Por ejemplo en el slug añadir un /uuid/slug_name (uuid corto) u otro mecanismo ideal que se utilice en estos casos.
+- [ ] **Monitorización Automática (Pingers)**: Que el usuario pueda configurar sus componentes. Será una vista nueva. Lo que se quiere es que un usuario pueda elegir como se monitorea un componente. Por defecto será de forma Manual (el usuario cambia el estado de forma manual o mediante las incidencias), pero habrá más modos, como el automático; El modo automático solo estará disponible para el plan PRO y Business. En este modo automático, el usuario podrá definir las reglas para cada estado del componente (de forma opcional, si no hay nada configurado será manual), por ejemplo, el usuario podrá definir, hacer ping/curl básico a una URL cada X segundos (mínimo 30 para PRO y 15 para Business), esto está pensado para hacer llamadas a healtchecks, por otro lado, se podrá configurar más cosas, el tipo de respuesta de ese healtcheck (si es Json), si es Json se podrán definir reglas, del tipo. Si en la respuesta existe una clave status["component"]["db"] y si el valor es igual a "Ok" entonces Estado "Operational" (si no no hacer nada). Cosas de ese estilo, esto hay que definirlo mejor, te dejo encargado de definir todo lo que se pueda hacer. El objetivo final es que sea una herramienta potente y muy util en un entorno laboral real. Por otro lado hay que enfocarse en la seguridad, no se podrá hacer un curl que ejecute código ni nada, para prevenir que nos inyecten llamadas malicionas o código.
 - [ ] **Mantenimientos Programados**: Capacidad de programar en el calendario un incidente futuro de estado "Maintenance", con su banner de aviso preventivo en la Status Page.
 - [ ] **Notificaciones al equipo administrador del status page** Se podrá configurar un envío de alertas al correo electrónico del administrador cuando se genere una nueva incidencia.
 - [ ] **Notificaciones para Suscriptores**: Una característica brutal donde los visitantes de la *Status Page* puedan darle a "Subscribe" con su email. Al actualizar/generar incidencias enviarles emails mediante integración con la API de Resend o Postmark o la mejor para este propósito.
@@ -32,12 +35,12 @@
 - [x] ~~**Spinners de Espera Nativos (UX)**~~ → Componente `<Button loading>` con CSS spinner
 - [x] ~~Redirección post-registro~~ → Muestra mensaje de confirmación de email
 - [x] ~~**Carga inicial de la página (~20s)**~~ → Resuelto: Turbopack bundlea localmente (278ms startup)
-- [ ] **Bug entre pestañas** Cuando la pestaña de un proyecto y modifico el estado de un componente, se actualiza correctamente. Pero si voy al status-page y recargo, todo parece ir bien, hasta que vuelvo a la página de configuración (en otra pestaña) y veo que no me deja hacer nada (los cambios no surten efecto, no se lanzan lamadas a SupaBase) si no recargo previamente la página web.
+- [x] **Bug entre pestañas** Cuando la pestaña de un proyecto y modifico el estado de un componente, se actualiza correctamente. Pero si voy al status-page y recargo, todo parece ir bien, hasta que vuelvo a la página de configuración (en otra pestaña) y veo que no me deja hacer nada (los cambios no surten efecto, no se lanzan lamadas a SupaBase) si no recargo previamente la página web.
 
 ## ~~🏗️ 7. Refactorización de Arquitectura y Stack~~ ✅ COMPLETADO
 - [x] **Migración a Next.js 16 (React 19.2)**: Completada con App Router, Turbopack, React Compiler
 - [x] **SSR para SEO**: Landing page y Status Pages renderizadas en servidor
-- [x] **Suite de tests**: 65 unit tests (Vitest + Testing Library)
+- [x] **Suite de tests**: 81 unit tests (Vitest + Testing Library)
 - [x] **TypeScript estricto**: Todo el código tipado
 - [x] **Archivos Vanilla eliminados**: `js/`, `css/`, `index.html` borrados
 
@@ -45,3 +48,19 @@
 - [ ] **Tests E2E con Playwright**: Flujos críticos (registro, login, crear proyecto, gestionar incidentes)
 - [ ] **Tests de componentes**: Renderizado y comportamiento de UI components con Testing Library
 - [ ] **Cobertura 100%**: Ampliar tests unitarios a todos los providers (AuthProvider, StoreProvider)
+
+## ~~✨ 9. Sistema de Severidades y Auto-Update de Componentes~~ ✅ COMPLETADO
+- [x] ~~**Nuevo sistema de severidades**~~ → 4 niveles: `critical | high | medium | low` (reemplazó `info | warning | danger`)
+- [x] ~~**Auto-update de componentes al crear incidencia**~~ → Componentes afectados se actualizan automáticamente según severidad
+- [x] ~~**Auto-restore a Operational al resolver**~~ → Cuando se resuelve una incidencia, componentes vuelven a `operational` si no hay otras activas
+- [x] ~~**Exclusión de maintenance**~~ → Incidentes `maintenance` no disparan auto-update
+
+## ~~📄 10. Paginación y Filtros de Incidencias~~ ✅ COMPLETADO
+- [x] ~~**Paginación de incidencias (10 por página)**~~ → Server-side pagination con `.range()` + `count: 'exact'`
+- [x] ~~**Filtro por proyecto**~~ → FilterBar dropdown con proyectos del usuario
+- [x] ~~**Filtro por componente**~~ → Deduplicación por nombre (mismo nombre en múltiples proyectos = 1 opción)
+- [x] ~~**Filtro por rango de fechas**~~ → DateFrom/DateTo inputs con Supabase `gte`/`lt`
+- [x] ~~**Componente FilterBar**~~ → Linear design, responsive (mobile stack)
+- [x] ~~**Componente Pagination**~~ → Page pills (5 centrados), prev/next, mobile collapse
+- [x] ~~**Integración en /incidents**~~ → FilterBar + Pagination + Spinner + EmptyState
+- [x] ~~**Integración en /project/[id]**~~ → Misma integración pre-filtrada al proyecto

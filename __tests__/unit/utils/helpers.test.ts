@@ -155,7 +155,7 @@ describe('uptimePercentage', () => {
     const incidents: Incident[] = [
       {
         id: '1', project_id: 'p1', title: 'Test', description: null,
-        status: 'resolved', severity: 'warning', component_ids: [],
+        status: 'resolved', severity: 'medium', component_ids: [],
         duration: 60, created_at: new Date().toISOString(), incident_updates: [],
       },
     ]
@@ -167,18 +167,22 @@ describe('uptimePercentage', () => {
 
 describe('getSeverityBadgeVariant', () => {
   it('returns success for resolved', () => {
-    expect(getSeverityBadgeVariant('resolved', 'danger')).toBe('success')
+    expect(getSeverityBadgeVariant('resolved', 'high')).toBe('success')
   })
 
-  it('returns danger for danger severity', () => {
-    expect(getSeverityBadgeVariant('investigating', 'danger')).toBe('danger')
+  it('returns danger for critical severity', () => {
+    expect(getSeverityBadgeVariant('investigating', 'critical')).toBe('danger')
   })
 
-  it('returns warning for warning severity', () => {
-    expect(getSeverityBadgeVariant('investigating', 'warning')).toBe('warning')
+  it('returns danger for high severity', () => {
+    expect(getSeverityBadgeVariant('investigating', 'high')).toBe('danger')
   })
 
-  it('returns info for info severity', () => {
-    expect(getSeverityBadgeVariant('investigating', 'info')).toBe('info')
+  it('returns warning for medium severity', () => {
+    expect(getSeverityBadgeVariant('investigating', 'medium')).toBe('warning')
+  })
+
+  it('returns info for low severity', () => {
+    expect(getSeverityBadgeVariant('investigating', 'low')).toBe('info')
   })
 })
