@@ -40,6 +40,7 @@ interface StoreContextType {
   addProject: (data: { name: string; slug: string; description: string; userId: string }) => Promise<{ success: boolean; error?: string; project?: Project }>
   updateProject: (id: string, updates: Partial<Project>) => Promise<{ success: boolean; error?: string }>
   deleteProject: (id: string) => Promise<{ success: boolean; error?: string }>
+  resetAllData: () => Promise<{ success: boolean; error?: string }>
   addComponent: (projectId: string, name: string) => Promise<{ success: boolean; error?: string; component?: Component }>
   updateComponentStatus: (componentId: string, projectId: string, status: string) => Promise<{ success: boolean; error?: string }>
   deleteComponent: (componentId: string, projectId: string) => Promise<{ success: boolean; error?: string }>
@@ -104,7 +105,7 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
     setIsLoading(true)
 
     const [projectsRes, incidentsRes] = await Promise.all([
-      supabase.from('projects').select('*, components(*)').eq('user_id', user.id),
+      supabase.from('projects').select('*, profiles(username), components(*)').eq('user_id', user.id),
       supabase.from('incidents').select('*, incident_updates(*)'),
     ])
 
@@ -278,7 +279,7 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
     const { data: newProject, error } = await supabase
       .from('projects')
       .insert([{ name: data.name, slug: data.slug, description: data.description, user_id: data.userId }])
-      .select()
+      .select('*, profiles(username)')
       .single()
 
     if (error) {
@@ -327,6 +328,20 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
 
     return { success: true }
   }, [supabase, projects, incidents, toast, addError])
+
+  const resetAllData = useCallback(async () => {
+    const { error } = await supabase.rpc('reset_user_data')
+    if (error) {
+      toast('Failed to reset data.', 'error')
+      return { success: false, error: error.message }
+    }
+
+    setProjects([])
+    setIncidents([])
+    setIncidentsPage([])
+    setPagination({ page: 1, limit: 10, totalCount: 0 })
+    return { success: true }
+  }, [supabase, toast])
 
   const addComponent = useCallback(async (projectId: string, name: string) => {
     try {
@@ -644,6 +659,7 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
         getIncidentById,
         getDeduplicatedComponentNames,
         refreshData: loadData,
+        resetAllData,
       }}
     >
       {children}
