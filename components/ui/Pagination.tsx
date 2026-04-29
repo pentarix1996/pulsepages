@@ -6,6 +6,7 @@ interface PaginationProps {
   totalCount: number
   onPageChange: (page: number) => void
   isLoading?: boolean
+  itemLabel?: string
 }
 
 function getPagePills(page: number, totalPages: number): number[] {
@@ -21,7 +22,7 @@ function getPagePills(page: number, totalPages: number): number[] {
   return [page - 2, page - 1, page, page + 1, page + 2]
 }
 
-export function Pagination({ page, limit, totalCount, onPageChange, isLoading }: PaginationProps) {
+export function Pagination({ page, limit, totalCount, onPageChange, isLoading, itemLabel = 'incidents' }: PaginationProps) {
   const totalPages = Math.max(1, Math.ceil(totalCount / limit))
   const startItem = totalCount === 0 ? 0 : (page - 1) * limit + 1
   const endItem = Math.min(page * limit, totalCount)
@@ -81,7 +82,7 @@ export function Pagination({ page, limit, totalCount, onPageChange, isLoading }:
         </span>
         {/* Desktop status */}
         <span className="pagination-status-desktop">
-          {totalCount === 0 ? 'No incidents' : `Showing ${startItem}-${endItem} of ${totalCount} incidents`}
+          {totalCount === 0 ? `No ${itemLabel}` : `Showing ${startItem}-${endItem} of ${totalCount} ${itemLabel}`}
         </span>
       </div>
     </div>
