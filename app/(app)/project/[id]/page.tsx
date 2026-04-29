@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth/provider'
 import { useStore } from '@/lib/store/provider'
 import { useToast } from '@/hooks/useToast'
@@ -166,13 +167,16 @@ function EditProject({ projectId }: { projectId: string }) {
   const componentNames = getDeduplicatedComponentNames(projectId)
 
   // Set project filter on mount and fetch paginated incidents
+  // Note: NOT adding setFilters or fetchIncidentsPage to deps — they are stable
+  // callbacks from the store. Adding them causes infinite loops because
+  // fetchIncidentsPage's reference changes when user changes (useCallback deps).
   useEffect(() => {
     if (projectId) {
       setFilters({ projectId })
-      // Use setTimeout to ensure state updates before fetch
       setTimeout(() => fetchIncidentsPage(), 0)
     }
-  }, [projectId, setFilters, fetchIncidentsPage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId])
 
   const handleProjectFilterChange = useCallback((newFilters: Partial<typeof filters>) => {
     setFilters(newFilters)
@@ -277,20 +281,24 @@ function EditProject({ projectId }: { projectId: string }) {
     router.push('/dashboard')
   }
 
-  const statusPageUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/status/${project.slug}`
+  const statusPageUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/status/${project.profiles?.username}/${project.slug}`
 
   return (
     <>
       <div className="page-header">
         <div>
           <h1 className="page-title">{project.name}</h1>
-          <p className="page-description">/{project.slug}</p>
+          <p className="page-description">/{project.profiles?.username}/{project.slug}</p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
           <Button variant="ghost" size="sm" onClick={() => copyToClipboard(statusPageUrl).then(() => addToast('URL copied!'))}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
             Copy URL
           </Button>
+          <Link className="btn btn-ghost btn-sm" href={`/project/${projectId}/monitoring`}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
+            Monitoring
+          </Link>
           <Button variant="ghost" size="sm" onClick={() => window.open(statusPageUrl, '_blank')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             View Status Page
