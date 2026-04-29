@@ -188,7 +188,7 @@ export function getHighestSeverityStatus(
 // Real Uptime Metrics
 // ---------------------------------------------------------------------------
 
-export const UPTIME_HISTORY_DAYS = parseInt(process.env.NEXT_PUBLIC_UPTIME_HISTORY_DAYS || '60', 10)
+export const UPTIME_HISTORY_DAYS = parseInt(process.env.NEXT_PUBLIC_UPTIME_HISTORY_DAYS || '30', 10)
 
 /**
  * Returns true for statuses that count as downtime for uptime calculation.
@@ -208,7 +208,7 @@ export async function insertStatusHistoryIfChanged(
   supabase: SupabaseClient,
   componentId: string,
   newStatus: string,
-  reason: 'incident' | 'manual' | 'maintenance' | 'incident_resolved',
+  reason: 'incident' | 'manual' | 'maintenance' | 'incident_resolved' | 'monitor' | 'monitor_recovery',
   incidentId?: string
 ): Promise<string | null> {
   const { data: last } = await supabase
@@ -260,13 +260,14 @@ export async function calculateUptimeFromHistory(
   days: number = UPTIME_HISTORY_DAYS
 ): Promise<string> {
   const endDate = new Date()
-  const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000)
+  // Use MIN of: configured window OR first record date (whichever is shorter)
+  // This ensures new projects show accurate uptime instead of inflated 99%+
+  const windowStart = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000)
 
   const { data: history, error } = await supabase
     .from('component_status_history')
     .select('status, changed_at')
     .eq('component_id', componentId)
-    .gte('changed_at', startDate.toISOString())
     .order('changed_at', { ascending: true })
 
   if (error) {
@@ -276,24 +277,58 @@ export async function calculateUptimeFromHistory(
 
   if (!history || history.length === 0) return '100.00'
 
-  let totalMs = endDate.getTime() - startDate.getTime()
+  // Determine actual start date: use earliest record if project is newer than the window
+  const firstRecordTime = new Date(history[0].changed_at).getTime()
+  const actualStartTime = Math.max(firstRecordTime, windowStart.getTime())
+
+  let totalMs = endDate.getTime() - actualStartTime
+  if (totalMs <= 0) return '100.00'
+
   let downtimeMs = 0
 
   for (let i = 0; i < history.length; i++) {
     const record = history[i]
+    const recordTime = new Date(record.changed_at).getTime()
     const nextTime = i === history.length - 1
       ? endDate.getTime()
       : new Date(history[i + 1].changed_at).getTime()
-    const startTime = new Date(record.changed_at).getTime()
-    const duration = nextTime - startTime
 
-    if (isDowntimeStatus(record.status)) {
+    // Only count time within our actual window
+    const windowedStart = Math.max(recordTime, actualStartTime)
+    const windowedEnd = Math.min(nextTime, endDate.getTime())
+    const duration = windowedEnd - windowedStart
+
+    if (duration > 0 && isDowntimeStatus(record.status)) {
       downtimeMs += duration
     }
   }
 
   const uptime = Math.max(0, 100 - (downtimeMs / totalMs * 100))
   return uptime.toFixed(2)
+}
+
+/**
+ * Calculate average uptime percentage for a project based on its components' status history.
+ * Averages the uptime of all components in the project.
+ *
+ * @param supabase - Supabase client
+ * @param components - Array of components from the project
+ * @param days - Number of days to calculate uptime over (default: UPTIME_HISTORY_DAYS)
+ * @returns String formatted as "99.93" (2 decimal places), or "100.00" if no components
+ */
+export async function calculateProjectUptime(
+  supabase: SupabaseClient,
+  components: Component[],
+  days: number = UPTIME_HISTORY_DAYS
+): Promise<string> {
+  if (!components || components.length === 0) return '100.00'
+
+  const uptimes = await Promise.all(
+    components.map((comp) => calculateUptimeFromHistory(supabase, comp.id, days))
+  )
+
+  const avgUptime = uptimes.reduce((sum, u) => sum + parseFloat(u), 0) / uptimes.length
+  return avgUptime.toFixed(2)
 }
 
 /**
