@@ -31,6 +31,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [supabase] = useState(() => createClient())
 
+  const fetchUsername = useCallback(async (userId: string): Promise<string | null> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', userId)
+      .single()
+
+    if (!error && data?.username) {
+      return data.username
+    }
+    return null
+  }, [supabase])
+
   const fetchProfile = useCallback(async (currentAuthUser: User): Promise<UserData> => {
     const { data, error } = await supabase
       .from('profiles')
@@ -43,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: currentAuthUser.id,
         email: currentAuthUser.email || '',
         name: data.name || '',
+        username: data.username || '',
         plan: data.plan || 'free',
       }
     }
@@ -51,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: currentAuthUser.id,
       email: currentAuthUser.email || '',
       name: currentAuthUser.user_metadata?.name || 'User',
+      username: '',
       plan: 'free',
     }
   }, [supabase])
@@ -129,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             id: authUser.id,
             email: authUser.email || '',
             name: authUser.user_metadata?.name || 'User',
+            username: '',
             plan: 'free',
           })
         }
