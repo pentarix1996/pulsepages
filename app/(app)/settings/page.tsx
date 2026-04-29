@@ -18,7 +18,7 @@ const planDescriptions: Record<string, string> = {
 
 export default function SettingsPage() {
   const { user, updateProfile, changePlan, logout } = useAuth()
-  const { refreshData } = useStore()
+  const { refreshData, resetAllData } = useStore()
   const { addToast } = useToast()
   const router = useRouter()
 
@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [profileLoading, setProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState('')
   const [profileSuccess, setProfileSuccess] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
 
   if (!user) return null
 
@@ -58,9 +59,16 @@ export default function SettingsPage() {
   }
 
   const handleReset = async () => {
-    if (!confirm('Are you sure? This will delete ALL your projects and incidents. Your account will NOT be deleted.')) return
-    addToast('All your projects and incidents have been reset.')
-    setTimeout(() => router.push('/dashboard'), 1000)
+    if (!confirm('Are you sure? This will delete ALL your projects, components, and incidents. Your account will NOT be deleted.')) return
+    setResetLoading(true)
+    const result = await resetAllData()
+    setResetLoading(false)
+    if (result.success) {
+      addToast('All data has been reset.')
+      router.push('/dashboard')
+    } else {
+      addToast(result.error || 'Failed to reset data.', 'error')
+    }
   }
 
   const handleLogout = async () => {
@@ -154,7 +162,7 @@ export default function SettingsPage() {
                 <p style={{ fontSize: '0.9375rem', fontWeight: 'var(--fw-medium)', color: 'var(--text-primary)' }}>Reset all data</p>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-tertiary)' }}>Delete all projects, incidents, and reset to demo state.</p>
               </div>
-              <Button variant="danger" size="sm" onClick={handleReset} id="settings-reset">Reset Data</Button>
+              <Button variant="danger" size="sm" loading={resetLoading} onClick={handleReset} id="settings-reset">Reset Data</Button>
             </div>
             <div className="divider" />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
