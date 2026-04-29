@@ -1,13 +1,13 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useAuth } from '@/lib/auth/provider'
 import { useStore } from '@/lib/store/provider'
 import { useToast } from '@/hooks/useToast'
 import { canCreateProject } from '@/lib/utils/plan-limits'
 import { getOverallStatus, getStatusDotClass, timeAgo } from '@/lib/utils/helpers'
-import { calculateUptimeFromHistory, UPTIME_HISTORY_DAYS } from '@/lib/utils/helpers'
+import { calculateProjectUptime, UPTIME_HISTORY_DAYS } from '@/lib/utils/helpers'
 import { createClient } from '@/lib/supabase/client'
 import { StatusDot } from '@/components/ui/StatusDot'
 
@@ -16,12 +16,12 @@ export default function DashboardPage() {
   const { projects, incidents } = useStore()
   const { addToast } = useToast()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [uptimeByProject, setUptimeByProject] = useState<Record<string, string>>({})
 
   if (!user) return null
 
-  const userProjects = projects.filter((p) => p.user_id === user.id)
+  const userProjects = useMemo(() => projects.filter((p) => p.user_id === user.id), [projects, user.id])
 
   const handleNewProject = () => {
     const check = canCreateProject(user.plan, userProjects.length)
@@ -40,7 +40,7 @@ export default function DashboardPage() {
       const results: Record<string, string> = {}
       await Promise.all(
         userProjects.map(async (project) => {
-          const uptime = await calculateUptimeFromHistory(supabase, project.id, UPTIME_HISTORY_DAYS)
+          const uptime = await calculateProjectUptime(supabase, project.components || [], UPTIME_HISTORY_DAYS)
           results[project.id] = uptime
         })
       )
@@ -81,7 +81,7 @@ export default function DashboardPage() {
               <div className="project-card-header">
                 <div>
                   <h3 className="project-card-title">{project.name}</h3>
-                  <span className="project-card-slug">/{project.slug}</span>
+                  <span className="project-card-slug">/{project.profiles?.username}/{project.slug}</span>
                 </div>
                 <div className="project-card-icon">
                   <StatusDot status={overallStatus} pulse />
