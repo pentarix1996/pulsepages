@@ -40,7 +40,7 @@ export default function LoginPage() {
         <div className="auth-header">
           <Link href="/" className="auth-logo">
             <div className="landing-nav-logo-icon">P</div>
-            PulsePages
+            Upvane
           </Link>
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to your account</p>

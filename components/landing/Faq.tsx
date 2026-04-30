@@ -19,7 +19,7 @@ export function Faq() {
     <section className="faq" id="faq">
       <div className="faq-header">
         <h2 className="faq-title">Frequently asked questions</h2>
-        <p className="faq-subtitle">Everything you need to know about PulsePages.</p>
+        <p className="faq-subtitle">Everything you need to know about Upvane.</p>
       </div>
       <div className="faq-list">
         {faqs.map((faq, index) => (

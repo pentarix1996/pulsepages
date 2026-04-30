@@ -8,7 +8,7 @@ export function Footer() {
           <div className="landing-footer-brand">
             <div className="landing-footer-brand-name">
               <div className="landing-nav-logo-icon">P</div>
-              PulsePages
+              Upvane
             </div>
             <p className="landing-footer-brand-desc">Beautiful status pages that build trust. Real-time service monitoring for developers and startups.</p>
           </div>
@@ -37,7 +37,7 @@ export function Footer() {
           </div>
         </div>
         <div className="landing-footer-bottom">
-          <p className="landing-footer-copyright">&copy; {new Date().getFullYear()} PulsePages. All rights reserved.</p>
+          <p className="landing-footer-copyright">&copy; {new Date().getFullYear()} Upvane. All rights reserved.</p>
           <div className="landing-footer-legal">
             <Link href="#">Privacy</Link>
             <Link href="#">Terms</Link>

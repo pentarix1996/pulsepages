@@ -133,7 +133,7 @@ export default function DashboardPage() {
             </p>
             <div style={{ backgroundColor: 'var(--bg-tertiary)', padding: 'var(--space-12)', borderRadius: 'var(--radius-4)', marginBottom: 'var(--space-12)', overflowX: 'auto' }}>
               <pre><code style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-{`curl -X PATCH https://api.pulsepages.dev/v1/projects/{project_id}/components/{component_id} \\
+{`curl -X PATCH https://api.upvane.dev/v1/projects/{project_id}/components/{component_id} \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{"status": "degraded"}'`}

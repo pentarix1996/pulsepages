@@ -268,7 +268,7 @@ export default function ApiKeysPage() {
             </svg>
           }
           title="No API keys yet"
-          description="Generate an API key to start using the PulsePages API for your CI/CD pipelines and monitoring tools."
+          description="Generate an API key to start using the Upvane API for your CI/CD pipelines and monitoring tools."
           action={
             userProjects.length > 0 ? (
               <Button

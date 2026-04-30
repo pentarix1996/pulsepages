@@ -4,8 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, u
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/auth/provider'
 import { createSnapshot, restoreSnapshot } from '@/lib/store/snapshot'
-import { getComponentStatusFromSeverity, getWorseStatus, getHighestSeverityStatus, insertStatusHistoryIfChanged } from '@/lib/utils/helpers'
-import type { Project, Incident, Component, IncidentUpdate, ComponentStatus, IncidentSeverity } from '@/lib/types'
+import type { Project, Incident, Component, IncidentUpdate, ComponentStatus } from '@/lib/types'
 
 interface PaginationState {
   page: number
@@ -378,7 +377,6 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
 
   const updateComponentStatus = useCallback(async (componentId: string, projectId: string, status: string) => {
     const snapshot = createSnapshot({ projects, incidents })
-
     setProjects((prev) =>
       prev.map((p) =>
         p.id === projectId
@@ -392,16 +390,18 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
       )
     )
 
-    const { error } = await supabase.from('components').update({ status }).eq('id', componentId)
-    if (error) {
+    const response = await fetch(`/api/components/${componentId}/status`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ project_id: projectId, status }),
+    })
+    if (!response.ok) {
       restoreSnapshot(snapshot)
-      toast(error.message, 'error')
-      addError(error.message)
-      return { success: false, error: error.message }
+      const message = await readApiError(response)
+      toast(message, 'error')
+      addError(message)
+      return { success: false, error: message }
     }
-
-    // Insert history record for manual status change
-    await insertStatusHistoryIfChanged(supabase, componentId, status, 'manual')
 
     return { success: true }
   }, [supabase, projects, incidents, toast, addError])
@@ -439,85 +439,47 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
     try {
       const snapshot = createSnapshot({ projects, incidents })
 
-      const { data: incData, error: incError } = await supabase
-        .from('incidents')
-        .insert([{
+      const response = await fetch('/api/incidents', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
           project_id: data.projectId,
           title: data.title,
           description: data.description,
           status: data.status,
           severity: data.severity,
           component_ids: data.components,
-        }])
-        .select()
-        .single()
-
-      if (incError) {
+        }),
+      })
+      if (!response.ok) {
         restoreSnapshot(snapshot)
-        toast(incError.message, 'error')
-        addError(incError.message)
-        return { success: false, error: incError.message }
+        const message = await readApiError(response)
+        toast(message, 'error')
+        addError(message)
+        return { success: false, error: message }
       }
 
-      const { data: updateData } = await supabase
-        .from('incident_updates')
-        .insert([{
-          incident_id: incData.id,
-          message: incData.description || 'Incident reported.',
-          status: incData.status,
-        }])
-        .select()
-        .single()
-
-      const newIncident: Incident = {
-        ...incData,
-        incident_updates: updateData ? [updateData] : [],
-      } as Incident
+      const result = await response.json() as IncidentMutationResponse
+      const newIncident = result.incident
 
       setIncidents((prev) => [newIncident, ...prev])
-
-      // Auto-update component statuses based on severity
-      // Bug fix 1: Skip if incident is created as resolved (no impact on components)
-      // Bug fix 3: Only upgrade status, never downgrade based on lower-severity incidents
-      // Fix: Low severity does NOT affect component status (doesn't count against uptime)
-      if (data.status !== 'resolved' && data.status !== 'maintenance' && data.components.length > 0 && data.severity !== 'low') {
-        const targetStatus = getComponentStatusFromSeverity(data.severity as IncidentSeverity)
-
-        // Update each affected component
-        for (const compId of data.components) {
-          // Find current component status
-          const currentComp = projects
-            .find((p) => p.id === data.projectId)
-            ?.components.find((c) => c.id === compId)
-          const currentStatus = currentComp?.status || 'operational'
-
-          // Only upgrade (never downgrade) based on existing status
-          const newStatus = getWorseStatus(currentStatus, targetStatus)
-
-          // Only update if status actually changed
-          if (newStatus !== currentStatus) {
-            await supabase.from('components').update({ status: newStatus }).eq('id', compId)
-            await insertStatusHistoryIfChanged(supabase, compId, newStatus, 'incident', incData.id)
-          }
-        }
-
-        // Update local state
+      if (result.component_updates.length > 0) {
         setProjects((prev) =>
           prev.map((p) =>
             p.id === data.projectId
               ? {
                   ...p,
                   components: p.components.map((c) => {
-                    if (!data.components.includes(c.id)) return c
-                    const target = getComponentStatusFromSeverity(data.severity as IncidentSeverity)
-                    const newStatus = getWorseStatus(c.status, target)
-                    return newStatus !== c.status ? { ...c, status: newStatus as ComponentStatus } : c
+                    const componentUpdate = result.component_updates.find((update) => update.id === c.id)
+                    return componentUpdate ? { ...c, status: componentUpdate.status } : c
                   }),
                 }
               : p
           )
         )
       }
+
+      if (result.alert.warning) console.warn('[alerts] incident alert warning:', result.alert.warning)
 
       return { success: true, incident: newIncident }
     } catch (err: unknown) {
@@ -526,11 +488,10 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
       addError(errorMsg)
       return { success: false, error: errorMsg }
     }
-  }, [supabase, projects, incidents, toast, addError])
+  }, [projects, incidents, toast, addError])
 
   const updateIncident = useCallback(async (id: string, updates: Record<string, unknown>, message?: string) => {
     const snapshot = createSnapshot({ projects, incidents })
-    const incident = incidents.find((i) => i.id === id)
 
     setIncidents((prev) =>
       prev.map((i) => {
@@ -540,23 +501,23 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
       })
     )
 
-    const { error } = await supabase.from('incidents').update(updates).eq('id', id)
-    if (error) {
+    const response = await fetch(`/api/incidents/${id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ updates, message }),
+    })
+    if (!response.ok) {
       restoreSnapshot(snapshot)
-      toast(error.message, 'error')
-      addError(error.message)
-      return { success: false, error: error.message }
+      const apiError = await readApiError(response)
+      toast(apiError, 'error')
+      addError(apiError)
+      return { success: false, error: apiError }
     }
 
-    let newHistoryItem: IncidentUpdate | null = null
-    if (message && updates.status) {
-      const { data } = await supabase
-        .from('incident_updates')
-        .insert([{ incident_id: id, message, status: updates.status as string }])
-        .select()
-        .single()
-      newHistoryItem = data as IncidentUpdate | null
+    const result = await response.json() as IncidentMutationResponse
+    const newHistoryItem = result.incident_update
 
+    if (newHistoryItem) {
       setIncidents((prev) =>
         prev.map((i) => {
           if (i.id !== id) return i
@@ -568,41 +529,22 @@ export function StoreProvider({ children, toastFn }: StoreProviderProps) {
         })
       )
     }
-
-    // Auto-restore/update components when incident is resolved
-    // Bug fix 2 (final): Calculate post-update incidents state manually since
-    // React state updates are async and we can't rely on 'incidents' closure variable
-    if (updates.status === 'resolved' && incident && incident.component_ids.length > 0) {
-      // Simulate what incidents will look like after setIncidents runs
-      const updatedIncidents = incidents.map((i) =>
-        i.id === id ? { ...i, ...updates } as Incident : i
+    if (result.component_updates.length > 0) {
+      setProjects((prev) =>
+        prev.map((p) => ({
+          ...p,
+          components: p.components.map((c) => {
+            const componentUpdate = result.component_updates.find((update) => update.id === c.id)
+            return componentUpdate ? { ...c, status: componentUpdate.status } : c
+          }),
+        }))
       )
-
-      for (const compId of incident.component_ids) {
-        // Get the highest severity status from remaining active incidents
-        const highestStatus = getHighestSeverityStatus(updatedIncidents, compId)
-        const newStatus: ComponentStatus = highestStatus || 'operational'
-
-        // Update in DB
-        await supabase.from('components').update({ status: newStatus }).eq('id', compId)
-
-        // Insert history record (only if status actually changed)
-        await insertStatusHistoryIfChanged(supabase, compId, newStatus, 'incident_resolved', id)
-
-        // Update local state
-        setProjects((prev) =>
-          prev.map((p) => ({
-            ...p,
-            components: p.components.map((c) =>
-              c.id === compId ? { ...c, status: newStatus } : c
-            ),
-          }))
-        )
-      }
     }
 
+    if (result.alert.warning) console.warn('[alerts] incident alert warning:', result.alert.warning)
+
     return { success: true }
-  }, [supabase, projects, incidents, toast, addError])
+  }, [projects, incidents, toast, addError])
 
   const deleteIncident = useCallback(async (id: string) => {
     const snapshot = createSnapshot({ projects, incidents })
@@ -673,4 +615,27 @@ export function useStore(): StoreContextType {
     throw new Error('useStore must be used within a StoreProvider')
   }
   return context
+}
+
+async function readApiError(response: Response): Promise<string> {
+  const body = await response.json().catch(() => null)
+  if (typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'string') return body.error
+  return 'Request failed.'
+}
+
+interface IncidentComponentUpdate {
+  id: string
+  status: ComponentStatus
+}
+
+interface IncidentMutationAlertResult {
+  queued: boolean
+  warning: string | null
+}
+
+interface IncidentMutationResponse {
+  incident: Incident
+  incident_update?: IncidentUpdate | null
+  component_updates: IncidentComponentUpdate[]
+  alert: IncidentMutationAlertResult
 }

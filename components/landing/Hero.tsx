@@ -34,7 +34,7 @@ export function Hero() {
             <div className="hero-visual-dot" style={{ backgroundColor: '#ff5f57' }} />
             <div className="hero-visual-dot" style={{ backgroundColor: '#febc2e' }} />
             <div className="hero-visual-dot" style={{ backgroundColor: '#28c840' }} />
-            <span className="hero-visual-url">pulsepages.com/status/cloudsync-api</span>
+            <span className="hero-visual-url">upvane.com/status/cloudsync-api</span>
           </div>
           <div className="hero-visual-content">
             <div className="hero-preview-status">

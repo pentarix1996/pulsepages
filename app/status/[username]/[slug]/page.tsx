@@ -12,7 +12,7 @@ interface StatusPageParams {
 export async function generateMetadata({ params }: StatusPageParams): Promise<Metadata> {
   const { username, slug } = await params
   return {
-    title: `${slug} — Status | PulsePages`,
+    title: `${slug} — Status | Upvane`,
     description: `Real-time status page for ${slug}`,
   }
 }
@@ -199,7 +199,7 @@ export default async function StatusPage({ params }: StatusPageParams) {
       ) : null}
 
       <div className="status-page-powered">
-        Powered by <Link href="/">PulsePages</Link>
+        Powered by <Link href="/">Upvane</Link>
       </div>
     </div>
   )

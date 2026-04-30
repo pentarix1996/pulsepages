@@ -27,7 +27,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="app-sidebar-header">
           <Link href="/" className="app-sidebar-logo" id="app-logo">
             <div className="app-sidebar-logo-icon">P</div>
-            PulsePages
+            Upvane
           </Link>
         </div>
         <nav className="app-sidebar-nav">
@@ -42,6 +42,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Link href="/monitoring" className="app-sidebar-link" id="nav-monitoring">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             Monitoring
+          </Link>
+          <Link href="/alerts" className="app-sidebar-link" id="nav-alerts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /><path d="M4 17h16" /><path d="M5 17l1.4-1.4A2 2 0 0 0 7 14.2V10a5 5 0 0 1 10 0v4.2a2 2 0 0 0 .6 1.4L19 17" /></svg>
+            Alerts
           </Link>
           <Link href="/dashboard/settings/api" className="app-sidebar-link" id="nav-api-keys">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>

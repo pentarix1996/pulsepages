@@ -13,7 +13,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'PulsePages — Status Pages That Build Trust',
+  title: 'Upvane — Status Pages That Build Trust',
   description: 'Beautiful, real-time status pages for your services. Keep your users informed with a single URL. Set up in 30 seconds — no code required.',
   keywords: ['status page', 'uptime monitoring', 'incident management', 'SaaS'],
 }

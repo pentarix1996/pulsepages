@@ -48,7 +48,7 @@ export default function RegisterPage() {
         <div className="auth-header">
           <Link href="/" className="auth-logo">
             <div className="landing-nav-logo-icon">P</div>
-            PulsePages
+            Upvane
           </Link>
           <h1 className="auth-title">Create your account</h1>
           <p className="auth-subtitle">Start monitoring your services in seconds</p>

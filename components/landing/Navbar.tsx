@@ -18,8 +18,8 @@ export function Navbar() {
       <nav className="landing-nav" id="landing-nav">
         <div className="landing-nav-inner">
           <Link href="/" className="landing-nav-logo" id="nav-logo">
-            <div className="landing-nav-logo-icon">P</div>
-            PulsePages
+            <div className="landing-nav-logo-icon">U</div>
+            Upvane
           </Link>
           <div className="landing-nav-links" id="nav-links">
             <a className="landing-nav-link" href="#features" onClick={(e) => { e.preventDefault(); scrollTo('features') }}>Features</a>
