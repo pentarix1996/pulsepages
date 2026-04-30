@@ -1,0 +1,30 @@
+## Implementation Progress
+
+**Change**: alerts-queue-dispatch follow-up UX fix
+**Mode**: Standard
+
+### Completed Tasks
+- [x] Alerts channel cards render side-by-side on desktop/tablet and stack on small screens.
+- [x] Email channel card toggles its configuration panel open/closed without changing email save behavior.
+- [x] Slack preview card was added as front-end-only UI; clicking it opens a placeholder panel and collapses Email.
+- [x] Channel panel state is mutually exclusive: opening one panel closes the other.
+- [x] Channel cards and panels were restyled to match the dark Linear-like DESIGN.md surface, border, typography, and accent rules.
+
+### Verification Performed
+- `npx tsc --noEmit` — passed.
+- `npm test -- __tests__/unit/alerts/config-route.test.ts __tests__/unit/alerts/config.test.ts __tests__/unit/alerts/channels.test.ts` — passed, 3 files / 9 tests.
+- `npm test` — passed, 22 files / 156 tests.
+- Build intentionally not run per instruction.
+
+### Deviations / Remaining
+- The existing project alerts page is already a Client Component, so this follow-up kept the change localized there rather than extracting a new child Client Component.
+- Slack is intentionally preview-only; no Slack backend adapter, tenant secret fields, webhook URL, or Vault integration was added.
+- No focused UI component test was added because the page depends on app auth/store/router hooks and existing alert test coverage is unit/API-focused.
+
+### Files Changed
+- `app/(app)/project/[id]/alerts/page.tsx` — added mutually exclusive Email/Slack panel toggle state, accessible channel buttons, inline SVG icons, Email panel save, and Slack placeholder preview.
+- `styles/app.css` — updated channel card grid, selected/focus states, panel styling, Slack preview styling, and responsive stacking.
+- `sdd/alerts-queue-dispatch/apply-progress` — persisted this apply-phase progress artifact.
+
+### Status
+Follow-up UX request complete and ready for verify. Prior broader `alerts-queue-dispatch` remaining items from the original change are unchanged: delivery-centric Next shim refactor, direct Edge worker/fallback coverage, and Supabase local integration checks.
