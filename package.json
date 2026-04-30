@@ -1,5 +1,5 @@
 {
-  "name": "pulsepages",
+  "name": "upvane",
   "version": "1.0.0",
   "description": "Beautiful status pages that build trust. Real-time service monitoring for developers and startups.",
   "private": true,
@@ -19,7 +19,7 @@
     "monitoring",
     "uptime"
   ],
-  "author": "PulsePages",
+  "author": "Upvane",
   "license": "MIT",
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
@@ -27,6 +27,7 @@
     "next": "^16.2.4",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
+    "resend": "^6.12.2",
     "supabase": "^2.92.1"
   },
   "devDependencies": {
@@ -37,6 +38,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.5",
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^29.0.2",
     "typescript": "^6.0.3",
