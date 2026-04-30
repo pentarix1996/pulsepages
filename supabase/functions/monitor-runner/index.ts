@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildMonitorTransitionAlertEvent } from "./alert-payload.ts";
 
 const MIN_INTERVAL_SECONDS = 30;
 const MAX_BATCH_SIZE = 50;
@@ -69,7 +70,7 @@ Deno.serve(async (req: Request) => {
 async function processConfig(config: Record<string, unknown>) {
   const { data: component } = await supabaseAdmin
     .from("components")
-    .select("id, status, project_id, projects!inner(user_id)")
+    .select("id, name, status, project_id, projects!inner(user_id, name, slug, profiles(username))")
     .eq("id", config.component_id)
     .single();
 
@@ -119,6 +120,7 @@ async function processConfig(config: Record<string, unknown>) {
     .eq("id", config.id);
 
   if (component.status !== result.resultingStatus) {
+    const previousStatus = component.status;
     const hasActiveIncident = await componentHasActiveIncident(String(config.project_id), String(config.component_id));
     if (!hasActiveIncident || result.resultingStatus !== "operational") {
       await supabaseAdmin.from("components").update({ status: result.resultingStatus }).eq("id", config.component_id);
@@ -127,6 +129,7 @@ async function processConfig(config: Record<string, unknown>) {
         status: result.resultingStatus,
         reason: result.resultingStatus === "operational" ? "monitor_recovery" : "monitor",
       });
+      await enqueueMonitorTransitionAlert({ config, component, previousStatus, result, checkedAt: now.toISOString() });
     }
   }
 
@@ -397,4 +400,43 @@ function getPath(payload: unknown, path: string): unknown {
 
 function failed(resultingStatus: string, httpStatus: number | null, responseTimeMs: number, errorMessage: string) {
   return { checkStatus: "failure", resultingStatus, httpStatus, responseTimeMs, errorMessage };
+}
+
+async function enqueueMonitorTransitionAlert(input: { config: Record<string, unknown>; component: Record<string, unknown>; previousStatus: string; result: ReturnType<typeof failed>; checkedAt: string }) {
+  const row = buildMonitorTransitionAlertEvent(input);
+  if (!row) return;
+  await enqueueAlertEventAndDispatch(row);
+}
+
+async function enqueueAlertEventAndDispatch(row: Record<string, unknown>): Promise<void> {
+  const { error } = await supabaseAdmin.rpc("enqueue_alert_event_and_dispatch", {
+    p_project_id: row.project_id,
+    p_type: row.type,
+    p_source_type: row.source_type,
+    p_source_id: row.source_id ?? null,
+    p_severity: row.severity ?? null,
+    p_dedupe_key: row.dedupe_key,
+    p_payload: row.payload,
+  });
+  if (error) {
+    console.warn("[alerts] monitor-runner queue RPC failed", error.message);
+    await supabaseAdmin.from("alert_events").insert(row);
+    return;
+  }
+  await invokeAlertWorker();
+}
+
+async function invokeAlertWorker(): Promise<void> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const secret = Deno.env.get("ALERT_WORKER_SECRET") ?? Deno.env.get("ALERTS_DISPATCHER_SECRET");
+  if (!url || !secret) return;
+  try {
+    await fetch(`${url.replace(/\/$/, "")}/functions/v1/alert-worker`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" },
+      body: JSON.stringify({ source: "monitor-runner" }),
+    });
+  } catch (error) {
+    console.warn("[alerts] monitor-runner worker invoke failed", error);
+  }
 }

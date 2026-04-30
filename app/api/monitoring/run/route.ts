@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isComponentStatus, normalizeMonitorConfig } from '@/lib/monitoring/config'
 import { executeMonitorCheck } from '@/lib/monitoring/fetch'
+import { ALERT_SOURCE_TYPE, enqueueComponentTransitionAlert } from '@/lib/alerts/enqueue'
 import type { NormalizedMonitorConfig } from '@/lib/monitoring/types'
 
 export async function POST(request: Request) {
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
 
   const { data: config } = await supabase
     .from('component_monitor_configs')
-    .select('*, components!inner(id, status, project_id, projects!inner(user_id))')
+    .select('*, components!inner(id, name, status, project_id, projects!inner(user_id, name, slug, profiles(username)))')
     .eq('id', body.config_id)
     .single()
 
@@ -59,14 +60,40 @@ export async function POST(request: Request) {
   await supabase.from('component_monitor_configs').update({ last_checked_at: now, next_check_at: new Date(Date.now() + normalized.interval_seconds * 1000).toISOString() }).eq('id', config.id)
 
   if (config.components.status !== result.resultingStatus) {
+    const previousStatus = config.components.status
     const hasActiveIncident = await componentHasActiveIncident(supabase, config.project_id, config.component_id)
     if (!hasActiveIncident || result.resultingStatus !== 'operational') {
       await supabase.from('components').update({ status: result.resultingStatus }).eq('id', config.component_id)
       await supabase.from('component_status_history').insert({ component_id: config.component_id, status: result.resultingStatus, reason: result.resultingStatus === 'operational' ? 'monitor_recovery' : 'monitor' })
+      await enqueueComponentTransitionAlert({
+        projectId: config.project_id,
+        projectName: config.components.projects.name,
+        componentId: config.component_id,
+        componentName: config.components.name,
+        previousStatus,
+        currentStatus: result.resultingStatus,
+        sourceType: ALERT_SOURCE_TYPE.MONITOR_NEXT_API,
+        sourceId: checkResult.id,
+        reason: result.errorMessage ?? `Monitor check changed ${config.components.name} to ${result.resultingStatus}.`,
+        monitor: {
+          status: result.checkStatus,
+          http_status: result.httpStatus,
+          response_time_ms: result.responseTimeMs,
+          error_message: result.errorMessage,
+          checked_at: now,
+        },
+        dashboardUrl: `${new URL(request.url).origin}/project/${config.project_id}/monitoring`,
+        statusPageUrl: createStatusPageUrl(request, config.components.projects.profiles?.username, config.components.projects.slug),
+      })
     }
   }
 
   return NextResponse.json({ result: checkResult })
+}
+
+function createStatusPageUrl(request: Request, username: string | undefined, slug: string | undefined): string | null {
+  if (!username || !slug) return null
+  return `${new URL(request.url).origin}/status/${username}/${slug}`
 }
 
 function hasInvalidMonitorStatuses(config: Record<string, unknown>): boolean {
