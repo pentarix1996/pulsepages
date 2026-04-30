@@ -1,4 +1,4 @@
-# 🚀 Roadmap & TODOs de PulsePages SaaS
+# 🚀 Roadmap & TODOs de Upvane SaaS
 
 ## 🔒 1. Seguridad en Backend (PostgreSQL & Supabase)
 - [ ] **Límite de Componentes**: Crear una función y un *Trigger* en PostgreSQL (similar al de la inserción de proyectos) que evite insertar nuevos componentes si se supera el cupo máximo asociado al \`plan\` del usuario en \`profiles\`.
@@ -14,7 +14,7 @@
 ## 📚 3. Documentación Técnica (Estilo Cursor / Stripe)
 - [ ] **Sistema de Layout de Docs**: Crear la ruta `/docs`. Debe tener de un estilo gráfico diferencial y canónico (Sidebar a la izquierda con el índice en árbol, bloque grande central, modo oscuro nativo, y navegación limpia).
 - [ ] **Documentación API**: Crear una documentación de la API completa, ver la mejor manera de hacer esto.
-- [ ] **Contenido de API REST**: Reflejar fielmente la *base url* definitiva (ej. \`https://api.pulsepages.dev/v1/...\`), autenticación HTTP por \`Bearer\`, *Rate Limits* aplicables, y todos los ejemplos de CURLs y Snippets de NodeJS emulando una API real.
+- [ ] **Contenido de API REST**: Reflejar fielmente la *base url* definitiva (ej. \`https://api.upvane.dev/v1/...\`), autenticación HTTP por \`Bearer\`, *Rate Limits* aplicables, y todos los ejemplos de CURLs y Snippets de NodeJS emulando una API real.
 - [ ] **Enlaces de Accesibilidad**: Inyectar enlaces hacia este panel desde la Navbar del Landing original, el menú de navegación lateral del Dashboard y en el footer del Landing.
 
 ## 💳 4. Pagos Reales (Stripe)
@@ -27,7 +27,7 @@
 - [X] **Monitorización Automática (Pingers)**: Completada con configuración por componente, modo manual por defecto, modo automático para planes Pro/Business, healthchecks HTTPS seguros mediante Supabase Cron + Edge Function cada minuto, reglas JSON case-insensitive para valores string, protección SSRF, historial de checks paginado y filtros por componente, estado del check y estado resultante.
 - [ ] **Mejoras de rendimiento** Ahora mismo, los filtros de /incidents y los incidentes de un proyecto, cuando se cambia un filtro se hace una llamada nueva a la API, eso es overkill, hay que hacer que funcione igual que lo hace el "Recent Checks" del apartado monitoring de un proyecto. Para aliviar la carga de la API. Lo suyo sería traerse todo en una llamda y ya luego poder aplicar los filtros del lado del cliente.
 - [ ] **Mantenimientos Programados**: Capacidad de programar en el calendario un incidente futuro de estado "Maintenance", con su banner de aviso preventivo en la Status Page.
-- [ ] **Notificaciones al equipo administrador del status page** Se podrá configurar un envío de alertas al correo electrónico del administrador cuando se genere una nueva incidencia.
+- [X] **Notificaciones al equipo administrador del status page** Se podrá configurar un envío de alertas al correo electrónico del administrador cuando se genere una nueva incidencia.
 - [ ] **Notificaciones para Suscriptores**: Una característica brutal donde los visitantes de la *Status Page* puedan darle a "Subscribe" con su email. Al actualizar/generar incidencias enviarles emails mediante integración con la API de Resend o Postmark o la mejor para este propósito.
 - [ ] **Configurar visibilidad en proyectos** Se añadirá una nueva feature, dónde se podrán configurar los proyectos para que sean privados o públicos (privados por defecto). Los proyectos privados, no serán accesibles desde el esterior, salvo por el propio usuario de la cuenta o con un .get mediante la API_KEY del proyecto.
 

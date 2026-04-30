@@ -1,4 +1,4 @@
-# PulsePages — SaaS de Ingresos Pasivos
+# Upvane — SaaS de Ingresos Pasivos
 
 ## Investigación de Mercado (Abril 2026)
 
@@ -12,7 +12,7 @@ El mercado de micro-SaaS en 2026 favorece productos **verticales**, que resuelve
 ### Nicho Elegido: Status Pages + Landing Pages para Startups/Devs
 
 > [!IMPORTANT]
-> **PulsePages** — Crea páginas de estado profesionales y landing pages de lanzamiento en segundos. Sin código. Estilo premium.
+> **Upvane** — Crea páginas de estado profesionales y landing pages de lanzamiento en segundos. Sin código. Estilo premium.
 
 **¿Por qué este nicho?**
 | Factor | Análisis |
@@ -56,7 +56,7 @@ El mercado de micro-SaaS en 2026 favorece productos **verticales**, que resuelve
    - Editor de status page por proyecto
    - Componentes de estado (Operational, Degraded, Down, Maintenance)
    - Historial de incidentes
-   - Página pública por proyecto con subdomain style (`proyecto.pulsepages.com` simulado via routing)
+   - Página pública por proyecto con subdomain style (`proyecto.upvane.com` simulado via routing)
    - Configuración de perfil
 
 3. **Características Premium (Pro/Business)**
@@ -154,7 +154,7 @@ mercu_assistantv2/
 | **Componentes** | 3 | 10 | Ilimitados |
 | **Historial** | 7 días | 90 días | 1 año |
 | **Custom Domain** | ❌ | ✅ | ✅ |
-| **Branding** | PulsePages badge | Sin badge | White-label |
+| **Branding** | Upvane badge | Sin badge | White-label |
 | **Landing Page** | Template básico | 3 templates | Templates custom |
 | **API Access** | ❌ | ✅ | ✅ |
 | **Soporte** | Comunidad | Email | Prioritario |
@@ -213,7 +213,7 @@ mercu_assistantv2/
 
 ---
 
-## Guía Completa: Cómo Generar Ingresos Pasivos con PulsePages
+## Guía Completa: Cómo Generar Ingresos Pasivos con Upvane
 
 ### Paso 1: Construir el Producto (Semanas 1-2)
 1. **Diseñar el sistema de diseño** basado en el DESIGN.md (Linear-inspired)
@@ -225,7 +225,7 @@ mercu_assistantv2/
 7. **Testing exhaustivo** — 0 bugs en producción
 
 ### Paso 2: Preparar el Lanzamiento (Semana 2-3)
-1. **Comprar dominio** — pulsepages.com o similar ($12/año)
+1. **Comprar dominio** — upvane.com o similar ($12/año)
 2. **Configurar hosting** — Vercel (free tier, auto-deploy desde GitHub)
 3. **Configurar Supabase** — Auth + Database (free tier)
 4. **Integrar Stripe** — Checkout para Pro y Business

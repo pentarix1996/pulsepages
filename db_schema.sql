@@ -1,5 +1,5 @@
 -- ==========================================
--- SCRIPT DE INICIALIZACIÓN: PULSEPAGES DB
+-- SCRIPT DE INICIALIZACIÓN: UPVANE DB
 -- ==========================================
 -- Pega este código completo en el SQL Editor de tu panel de Supabase y dale a "Run"
 
