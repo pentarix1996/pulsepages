@@ -1,0 +1,23 @@
+/* Auth pages (app/(auth), /invite) and settings (app/(panel)/settings). Builds on panel.css (.auth, .auth-card). */
+
+/* ---------- auth ---------- */
+.auth-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-weight: 650; font-size: 17px; align-self: flex-start; }
+.auth-logo:hover { color: var(--text-strong); }
+.auth-head { display: flex; flex-direction: column; gap: 8px; }
+.auth-head p { color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+.auth-foot { text-align: center; color: var(--muted); font-size: 13.5px; }
+.auth-submit { width: 100%; }
+.auth-forgot { align-self: flex-end; font-size: 13px; }
+.auth-or { display: flex; align-items: center; gap: 12px; color: var(--faint); font-size: 12.5px; }
+.auth-or::before, .auth-or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
+.auth-alt { display: grid; gap: 8px; }
+.auth-alt .btn { width: 100%; }
+.auth-sent { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: var(--radius-md); border: 1px solid rgba(169, 166, 255, 0.35); background: var(--tint-accent); }
+.auth-sent > svg { color: var(--accent); margin-top: 2px; }
+.auth-sent strong { font-weight: 650; }
+.pw-rule { display: inline-flex; gap: 14px; flex-wrap: wrap; }
+.pw-rule .ok { color: var(--t-up); }
+.code-input { font-family: var(--font-mono); font-size: 22px; letter-spacing: 0.45em; text-align: center; min-height: 52px; font-variant-numeric: tabular-nums; }
+.invite-summary { margin: 0; display: flex; flex-direction: column; }
+.invite-summary dd { margin: 0; }
+.input-group > .btn-ghost { background: var(--sunken); }

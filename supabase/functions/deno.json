@@ -1,0 +1,19 @@
+{
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  },
+  "tasks": {
+    "check": "deno check monitor-probe/index.ts monitor-runner/index.ts alert-worker/index.ts api/index.ts",
+    "test": "deno test --allow-env --allow-net=127.0.0.1 --allow-read=. --no-prompt"
+  },
+  "fmt": {
+    "semiColons": false,
+    "singleQuote": true,
+    "lineWidth": 160
+  },
+  "lint": {
+    "rules": {
+      "exclude": ["no-explicit-any"]
+    }
+  }
+}
