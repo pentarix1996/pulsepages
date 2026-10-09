@@ -1,0 +1,10 @@
+// Every area registers its operations on import (order = order in the document).
+import './projects'
+import './components'
+import './incidents'
+import './maintenances'
+import './monitors'
+import './alerts'
+import './subscribers'
+import './metrics'
+import './integrations'

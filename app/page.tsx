@@ -1,19 +1,9 @@
-import { Navbar } from '@/components/landing/Navbar'
-import { Hero } from '@/components/landing/Hero'
-import { Features } from '@/components/landing/Features'
-import { Pricing } from '@/components/landing/Pricing'
-import { Faq } from '@/components/landing/Faq'
-import { Footer } from '@/components/landing/Footer'
-
-export default function LandingPage() {
+// Placeholder until the landing is ported from the design (task #11).
+export default function Home() {
   return (
-    <div className="landing">
-      <Navbar />
-      <Hero />
-      <Features />
-      <Pricing />
-      <Faq />
-      <Footer />
-    </div>
+    <main style={{ padding: 48 }}>
+      <h1 className="page-title">Upvane</h1>
+      <p className="muted">Landing page in progress.</p>
+    </main>
   )
 }

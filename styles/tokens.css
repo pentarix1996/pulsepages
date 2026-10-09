@@ -1,0 +1,132 @@
+/* Upvane design tokens — see DESIGN.md §2–4. :root is the ink theme (panel, landing). */
+:root {
+  /* --font-archivo and --font-jetbrains come from next/font in app/layout.tsx */
+  --font-sans: var(--font-archivo, 'Archivo'), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-jetbrains, 'JetBrains Mono'), ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --bg: #0C1222;
+  --side: #0E1528;
+  --panel: #111A2E;
+  --raised: #17223A;
+  --sunken: rgba(10, 15, 28, 0.6);
+  --line: rgba(148, 170, 210, 0.13);
+  --line2: rgba(148, 170, 210, 0.24);
+  --line3: rgba(160, 180, 220, 0.5);
+  --hover: rgba(148, 170, 210, 0.07);
+  --selected: rgba(148, 170, 210, 0.1);
+  --text: #E9EEF8;
+  --text-strong: #FFFFFF;
+  --muted: #A3AEC5;
+  --faint: #7D89A3;
+  --brand: #5B58E8;
+  --accent: #A9A6FF;
+  --link: #B9B7FF;
+
+  --up: #34D39A;
+  --deg: #F4B740;
+  --part: #F28A3E;
+  --major: #F0525D;
+  --maint: #5E9BFF;
+  --none: #26324C;
+  --t-up: #34D39A;
+  --t-deg: #F4B740;
+  --t-part: #F28A3E;
+  --t-major: #FF7A83;
+  --t-maint: #5E9BFF;
+  --danger-text: #FF8189;
+
+  --tint-up: rgba(52, 211, 154, 0.12);
+  --tint-deg: rgba(244, 183, 64, 0.13);
+  --tint-part: rgba(242, 138, 62, 0.13);
+  --tint-major: rgba(240, 82, 93, 0.14);
+  --tint-maint: rgba(94, 155, 255, 0.13);
+  --tint-accent: rgba(169, 166, 255, 0.14);
+
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-pill: 999px;
+
+  --shadow-float: 0 18px 40px rgba(0, 0, 0, 0.35);
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  color-scheme: dark;
+}
+
+/* Public status page: light by default, `.dark` variant. The accent comes from the project's brand color. */
+.sp {
+  --bg: #F5F6F8;
+  --surface: #FFFFFF;
+  --line: #E3E6EC;
+  --line2: #D3D8E1;
+  --hover: #F0F2F5;
+  --text: #121826;
+  --muted: #4F5A70;
+  --faint: #677287;
+  --up: #14A06A;
+  --deg: #E0A21B;
+  --part: #E8742A;
+  --major: #DC3545;
+  --maint: #3B72E0;
+  --none: #E2E6ED;
+  --t-up: #0F7E52;
+  --t-deg: #8F5E00;
+  --t-part: #A84A0C;
+  --t-major: #BC2534;
+  --t-maint: #2A5BC0;
+  --tint-up: #E9F7F0;
+  --tint-up-b: #B5E3CC;
+  --tint-deg: #FDF5E3;
+  --tint-deg-b: #F0D493;
+  --tint-part: #FDF1E7;
+  --tint-part-b: #F3C9A6;
+  --tint-major: #FDECEE;
+  --tint-major-b: #F2B8BE;
+  --tint-maint: #ECF2FE;
+  --tint-maint-b: #BCD0F7;
+  --tip: #121826;
+  --tip-t: #FFFFFF;
+  --accent: var(--brand-accent, #0E7490);
+  --link: var(--brand-accent, #0E7490);
+  --shadow-float: 0 24px 60px rgba(10, 15, 30, 0.2);
+  color-scheme: light;
+}
+
+.sp.dark {
+  --bg: #0D1320;
+  --surface: #131B2C;
+  --line: rgba(148, 170, 210, 0.14);
+  --line2: rgba(148, 170, 210, 0.26);
+  --hover: rgba(148, 170, 210, 0.07);
+  --text: #E8EDF6;
+  --muted: #A9B3C7;
+  --faint: #8A96AD;
+  --up: #34D39A;
+  --deg: #F4B740;
+  --part: #F28A3E;
+  --major: #FF6B76;
+  --maint: #6EA6FF;
+  --none: #26324C;
+  --t-up: #4FE0A8;
+  --t-deg: #F7C766;
+  --t-part: #F6A266;
+  --t-major: #FF8B94;
+  --t-maint: #8DB8FF;
+  --tint-up: rgba(52, 211, 154, 0.1);
+  --tint-up-b: rgba(52, 211, 154, 0.35);
+  --tint-deg: rgba(244, 183, 64, 0.1);
+  --tint-deg-b: rgba(244, 183, 64, 0.38);
+  --tint-part: rgba(242, 138, 62, 0.1);
+  --tint-part-b: rgba(242, 138, 62, 0.4);
+  --tint-major: rgba(255, 107, 118, 0.1);
+  --tint-major-b: rgba(255, 107, 118, 0.4);
+  --tint-maint: rgba(110, 166, 255, 0.1);
+  --tint-maint-b: rgba(110, 166, 255, 0.38);
+  --tip: #E8EDF6;
+  --tip-t: #0D1320;
+  --link: var(--brand-accent-dark, #7CD3E6);
+  --shadow-float: 0 24px 60px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
