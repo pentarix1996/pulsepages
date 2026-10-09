@@ -1,0 +1,12 @@
+{
+  "name": "@upvane/cli",
+  "version": "1.0.0",
+  "description": "Upvane from the terminal: declare incidents, schedule maintenance, pin component status and report cron jobs to heartbeat monitors.",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "upvane": "bin/upvane.js" },
+  "files": ["bin", "src", "README.md"],
+  "engines": { "node": ">=18.17" },
+  "scripts": { "test": "node --test test/*.test.js" },
+  "keywords": ["upvane", "status page", "incident", "maintenance", "heartbeat", "monitoring"]
+}
