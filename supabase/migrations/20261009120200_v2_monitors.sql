@@ -623,7 +623,8 @@ declare
 begin
   select * into v_monitor from public.monitors where id = p_monitor_id for update;
   if not found then return; end if;
-  if p_state not in ('up', 'degraded', 'down') then
+  -- A null state keeps the current one (every probe errored before the monitor had a confirmed state).
+  if p_state is not null and p_state not in ('up', 'degraded', 'down') then
     raise exception 'Invalid monitor state %.', p_state using errcode = '22023';
   end if;
 
@@ -670,8 +671,8 @@ begin
   delete from public.monitor_region_state where monitor_id = p_monitor_id and region <> all(v_monitor.regions);
 
   update public.monitors set
-    state = case when enabled and paused_reason is null then p_state else state end,
-    state_changed_at = case when state is distinct from p_state then now() else state_changed_at end,
+    state = case when enabled and paused_reason is null and p_state is not null then p_state else state end,
+    state_changed_at = case when enabled and paused_reason is null and p_state is not null and state is distinct from p_state then now() else state_changed_at end,
     last_checked_at = now(),
     last_result = p_summary,
     last_error = case when p_state = 'up' then null else coalesce(left(p_last_error, 1000), last_error) end,

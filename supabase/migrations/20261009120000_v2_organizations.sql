@@ -152,13 +152,27 @@ as $$
   )
 $$;
 
+-- The public API writes with the service role but sends `x-upvane-actor: api_key:<id>`. Only honoured for the
+-- service role (anyone can send the header with their own JWT, where it means nothing).
+create or replace function public.request_api_actor()
+returns text
+language sql
+stable
+as $$
+  select case when current_user = 'service_role'
+    then nullif(coalesce(nullif(current_setting('request.headers', true), ''), '{}')::json ->> 'x-upvane-actor', '')
+    else null
+  end
+$$;
+
 create or replace function public.is_privileged_session()
 returns boolean
 language sql
 stable
 as $$
-  -- true for service_role, postgres and security definer code; false for PostgREST anon/authenticated sessions.
-  select current_user not in ('anon', 'authenticated')
+  -- true for service_role, postgres and security definer code; false for PostgREST anon/authenticated sessions
+  -- and for API-key writes, so plan limits and managed fields are enforced the same way for the API (spec §8).
+  select current_user not in ('anon', 'authenticated') and public.request_api_actor() is null
 $$;
 
 -- For security definer functions (where current_user is always the owner): true for the service role, cron and
@@ -525,7 +539,8 @@ begin
   if new.organization_id is null then
     raise exception 'Choose an organization for the project.' using errcode = '23502';
   end if;
-  if not public.is_privileged_session() and not public.has_org_role(new.organization_id, 'admin') then
+  -- API keys are authorized by the server before the insert (write scope on an organization-wide key).
+  if not public.is_privileged_session() and public.request_api_actor() is null and not public.has_org_role(new.organization_id, 'admin') then
     raise exception 'Only admins can create projects.' using errcode = '42501';
   end if;
   select plan into v_plan from public.organizations where id = new.organization_id;

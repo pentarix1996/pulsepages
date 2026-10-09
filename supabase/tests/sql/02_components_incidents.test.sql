@@ -93,9 +93,11 @@ begin
   v_maintenance := public.create_maintenance(tests.payments(), 'DB upgrade', 'Minor version', now() - interval '1 minute', now() + interval '30 minutes', array[tests.gateway()]);
   assert v_maintenance.status = 'in_progress', 'auto-started because start is in the past';
   assert (select status from public.components where id = tests.gateway()) = 'maintenance';
-  perform public.set_maintenance_status(v_maintenance.id, 'completed', 'Done early.');
+  perform public.post_maintenance_update(v_maintenance.id, 'Replica caught up, switching over.', 'deploy-bot');
+  assert (select actor_label from public.maintenance_updates where maintenance_id = v_maintenance.id and message like 'Replica%') = 'deploy-bot';
+  perform public.set_maintenance_status(v_maintenance.id, 'completed', 'Done early.', 'deploy-bot');
   assert (select status from public.components where id = tests.gateway()) = 'operational';
-  assert (select count(*) from public.maintenance_updates where maintenance_id = v_maintenance.id) = 3;
+  assert (select count(*) from public.maintenance_updates where maintenance_id = v_maintenance.id) = 4;
 end $$;
 
 -- Dependencies: the API depends on the gateway

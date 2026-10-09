@@ -1372,7 +1372,8 @@ create or replace function public.create_maintenance(
   p_auto_complete boolean default true,
   p_notify_subscribers boolean default true,
   p_reminder_minutes integer default 1440,
-  p_mute_alerts boolean default true
+  p_mute_alerts boolean default true,
+  p_actor_label text default null
 )
 returns public.maintenances
 language plpgsql
@@ -1396,13 +1397,13 @@ begin
     end if;
     insert into public.maintenance_components (maintenance_id, component_id) values (v_maintenance.id, v_component) on conflict do nothing;
   end loop;
-  insert into public.maintenance_updates (maintenance_id, status, message, created_by)
-  values (v_maintenance.id, 'scheduled', coalesce(nullif(trim(p_description), ''), 'Maintenance scheduled.'), auth.uid());
+  insert into public.maintenance_updates (maintenance_id, status, message, created_by, actor_label)
+  values (v_maintenance.id, 'scheduled', coalesce(nullif(trim(p_description), ''), 'Maintenance scheduled.'), auth.uid(), p_actor_label);
   perform public.emit_maintenance_event(v_maintenance.id, 'maintenance_scheduled');
   if p_scheduled_start <= now() and p_auto_start then
     update public.maintenances set status = 'in_progress' where id = v_maintenance.id;
-    insert into public.maintenance_updates (maintenance_id, status, message, created_by)
-    values (v_maintenance.id, 'in_progress', 'Maintenance started.', auth.uid());
+    insert into public.maintenance_updates (maintenance_id, status, message, created_by, actor_label)
+    values (v_maintenance.id, 'in_progress', 'Maintenance started.', auth.uid(), p_actor_label);
   end if;
   select * into v_maintenance from public.maintenances where id = v_maintenance.id;
   return v_maintenance;
@@ -1463,7 +1464,7 @@ begin
 end;
 $$;
 
-create or replace function public.set_maintenance_status(p_maintenance_id uuid, p_status text, p_message text default null)
+create or replace function public.set_maintenance_status(p_maintenance_id uuid, p_status text, p_message text default null, p_actor_label text default null)
 returns public.maintenances
 language plpgsql
 security definer
@@ -1485,13 +1486,36 @@ begin
     raise exception 'Start the maintenance before completing it, or cancel it.' using errcode = '22023';
   end if;
   update public.maintenances set status = p_status where id = p_maintenance_id returning * into v_maintenance;
-  insert into public.maintenance_updates (maintenance_id, status, message, created_by)
+  insert into public.maintenance_updates (maintenance_id, status, message, created_by, actor_label)
   values (p_maintenance_id, p_status, coalesce(nullif(trim(p_message), ''), case p_status
     when 'in_progress' then 'Maintenance started.'
     when 'completed' then 'Maintenance completed.'
     else 'Maintenance cancelled.'
-  end), auth.uid());
+  end), auth.uid(), p_actor_label);
   return v_maintenance;
+end;
+$$;
+
+create or replace function public.post_maintenance_update(p_maintenance_id uuid, p_message text, p_actor_label text default null)
+returns public.maintenance_updates
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_maintenance public.maintenances;
+  v_update public.maintenance_updates;
+begin
+  select * into v_maintenance from public.maintenances where id = p_maintenance_id;
+  if not found then raise exception 'Maintenance window not found.' using errcode = 'P0002'; end if;
+  perform public.assert_project_role(v_maintenance.project_id, 'responder');
+  if nullif(trim(coalesce(p_message, '')), '') is null then
+    raise exception 'Write a message for the update.' using errcode = '22023';
+  end if;
+  insert into public.maintenance_updates (maintenance_id, status, message, created_by, actor_label)
+  values (p_maintenance_id, v_maintenance.status, trim(p_message), auth.uid(), p_actor_label)
+  returning * into v_update;
+  return v_update;
 end;
 $$;
 
@@ -1583,9 +1607,10 @@ begin
     'public.delete_incident(uuid)',
     'public.ensure_postmortem_draft(uuid, boolean)',
     'public.set_component_manual_status(uuid, text)',
-    'public.create_maintenance(uuid, text, text, timestamptz, timestamptz, uuid[], boolean, boolean, boolean, integer, boolean)',
+    'public.create_maintenance(uuid, text, text, timestamptz, timestamptz, uuid[], boolean, boolean, boolean, integer, boolean, text)',
     'public.update_maintenance(uuid, text, text, timestamptz, timestamptz, uuid[], boolean, boolean, boolean, integer, boolean)',
-    'public.set_maintenance_status(uuid, text, text)',
+    'public.set_maintenance_status(uuid, text, text, text)',
+    'public.post_maintenance_update(uuid, text, text)',
     'public.incident_component_snapshot(uuid)',
     'public.assert_project_role(uuid, text)'
   ] loop

@@ -12,6 +12,7 @@ begin
   execute 'reset role';
   select email into v_email from auth.users where id = p_user;
   perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated', 'email', v_email)::text, true);
+  perform set_config('request.headers', '', true);
   execute 'set local role authenticated';
 end;
 $$;
@@ -23,6 +24,7 @@ as $$
 begin
   execute 'reset role';
   perform set_config('request.jwt.claims', '{"role": "anon"}', true);
+  perform set_config('request.headers', '', true);
   execute 'set local role anon';
 end;
 $$;
@@ -34,6 +36,20 @@ as $$
 begin
   execute 'reset role';
   perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  perform set_config('request.headers', '', true);
+  execute 'set local role service_role';
+end;
+$$;
+
+-- Service role acting for an API key (what the public API does): guards apply as for dashboard users.
+create or replace function tests.as_api_key(p_key text default 'api_key:test')
+returns void
+language plpgsql
+as $$
+begin
+  execute 'reset role';
+  perform set_config('request.jwt.claims', '{"role": "service_role"}', true);
+  perform set_config('request.headers', json_build_object('x-upvane-actor', p_key)::text, true);
   execute 'set local role service_role';
 end;
 $$;
@@ -45,6 +61,7 @@ as $$
 begin
   execute 'reset role';
   perform set_config('request.jwt.claims', '', true);
+  perform set_config('request.headers', '', true);
 end;
 $$;
 
