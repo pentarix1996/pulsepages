@@ -78,6 +78,7 @@
 .mf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; }
 .mf-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .mf-toggles { display: flex; flex-direction: column; gap: 10px; }
+.mf-sentence { font-size: 13.5px; color: #C9D3E6; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; line-height: 1.55; }
 
 @media (max-width: 860px) {
   .shell { flex-direction: column; }

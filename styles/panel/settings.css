@@ -31,3 +31,16 @@
 .sp-logo { height: 38px; max-width: 160px; object-fit: contain; border-radius: var(--radius-sm); background: var(--sunken); border: 1px solid var(--line); padding: 4px 8px; }
 .sp-logo-empty { display: inline-flex; align-items: center; color: var(--faint); font-size: 12.5px; }
 label.btn.is-disabled { opacity: 0.5; pointer-events: none; }
+
+/* Projects (/projects) */
+.pj-org { display: flex; flex-direction: column; gap: 12px; }
+.pj-org-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.pj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; }
+.pj-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel); color: var(--text); transition: border-color 0.2s, transform 0.2s var(--ease-out); min-width: 0; }
+.pj-card:hover { border-color: var(--line3); transform: translateY(-1px); }
+.pj-card.has-incident { border-color: rgba(240, 82, 93, 0.4); }
+.pj-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.pj-card-top strong { font-size: 16px; font-weight: 650; overflow-wrap: anywhere; }
+.pj-card-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--muted); }
+.pj-card-url { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--faint); overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .pj-card:hover { transform: none; } }

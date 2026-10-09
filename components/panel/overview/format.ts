@@ -77,6 +77,7 @@ export function everyInterval(seconds: number): string {
 /** Short lowercase region code for dense rows ("fra"), with the city for the title. */
 export function regionCode(region: string | null): { code: string; city: string } {
   if (!region) return { code: '—', city: 'Unknown region' }
+  if (region === 'heartbeat') return { code: 'hb', city: 'Heartbeat ping' }
   const info = regionInfo(region)
   return info ? { code: info.short.toLowerCase(), city: `${info.city} (${region})` } : { code: region.slice(0, 3), city: region }
 }

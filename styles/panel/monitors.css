@@ -104,7 +104,6 @@
 .mf-region:hover { border-color: var(--line3); color: var(--text); }
 .mf-region[aria-pressed='true'] { border-color: var(--accent); color: var(--text); background: var(--tint-accent); }
 .mf-region:disabled { opacity: 0.45; cursor: not-allowed; }
-.mf-sentence { font-size: 13.5px; color: #C9D3E6; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; line-height: 1.55; }
 .mf-comps { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--radius-md); background: var(--sunken); }
 
 /* ------------------------------------------------------------------ integrations */
