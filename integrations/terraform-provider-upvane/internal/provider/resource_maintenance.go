@@ -100,11 +100,8 @@ func (r *maintenanceResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"auto_start":         optionalComputedBool("Start the window automatically at `scheduled_start`."),
 			"auto_complete":      optionalComputedBool("Complete the window automatically at `scheduled_end`."),
 			"notify_subscribers": optionalComputedBool("Email and notify status page subscribers about the window."),
-			"reminder_minutes": schema.Int64Attribute{
-				Optional:    true,
-				Description: "Send subscribers a reminder this many minutes before the start.",
-				Validators:  []validator.Int64{int64validator.Between(1, 10080)},
-			},
+			"reminder_minutes": optionalComputedInt64("Send subscribers a reminder this many minutes before the start; 0 sends none. Defaults to 1440 (24 hours).",
+				int64validator.Between(0, 10080)),
 			"mute_alerts": optionalComputedBool("Mute alerts for the affected components while the window is in progress."),
 			"status": schema.StringAttribute{
 				Computed:    true,

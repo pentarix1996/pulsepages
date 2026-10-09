@@ -38,7 +38,7 @@ type componentModel struct {
 	Description types.String      `tfsdk:"description"`
 	GroupID     types.String      `tfsdk:"group_id"`
 	Position    types.Int64       `tfsdk:"position"`
-	DependsOn   []dependencyModel `tfsdk:"depends_on"`
+	DependsOn   []dependencyModel `tfsdk:"dependencies"`
 	Status      types.String      `tfsdk:"status"`
 }
 
@@ -86,7 +86,7 @@ func (r *componentResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators:    []validator.Int64{int64validator.Between(0, 100000)},
 				PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 			},
-			"depends_on": schema.ListNestedAttribute{
+			"dependencies": schema.ListNestedAttribute{
 				Optional:    true,
 				Description: "Components this one depends on. When a dependency has a major outage this component shows `impact`; a degraded or partial dependency degrades it. Terraform owns the full list: omit it to remove every dependency.",
 				Validators:  []validator.List{listvalidator.SizeAtMost(50)},
@@ -224,7 +224,7 @@ func (r *componentResource) save(ctx context.Context, m *componentModel, c clien
 	m.Status = types.StringValue(c.Status)
 	deps, err := r.reconcileDependencies(ctx, m.Project.ValueString(), priorDeps, c.DependsOn)
 	if err != nil {
-		diags.AddWarning("Could not resolve component keys in depends_on", err.Error())
+		diags.AddWarning("Could not resolve component keys in dependencies", err.Error())
 	}
 	m.DependsOn = deps
 	diags.Append(set(ctx, *m)...)

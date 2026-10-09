@@ -106,7 +106,7 @@ type componentDataModel struct {
 	Position     types.Int64           `tfsdk:"position"`
 	Status       types.String          `tfsdk:"status"`
 	StatusSource types.String          `tfsdk:"status_source"`
-	DependsOn    []dependencyDataModel `tfsdk:"depends_on"`
+	DependsOn    []dependencyDataModel `tfsdk:"dependencies"`
 }
 
 type dependencyDataModel struct {
@@ -139,7 +139,7 @@ func (d *componentDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 			"position":      schema.Int64Attribute{Computed: true, Description: "Order inside its group."},
 			"status":        schema.StringAttribute{Computed: true, Description: "Effective status: " + quoted(componentStatuses) + "."},
 			"status_source": schema.StringAttribute{Computed: true, Description: "What decided the status: `default`, `incident`, `maintenance`, `manual`, `monitor`, `signal` or `dependency`."},
-			"depends_on": schema.ListNestedAttribute{
+			"dependencies": schema.ListNestedAttribute{
 				Computed:    true,
 				Description: "Dependencies of the component.",
 				NestedObject: schema.NestedAttributeObject{
