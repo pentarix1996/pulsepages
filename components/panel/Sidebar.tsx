@@ -84,7 +84,7 @@ export function Sidebar({ user, organizations, projects, counts, lastProjectId, 
 
       <button type="button" className="cmdk-trigger" onClick={onOpenPalette}>
         <SearchIcon size={15} />
-        Search or run a command
+        <span>Search or run a command</span>
         <kbd className="kbd">⌘K</kbd>
       </button>
 
