@@ -71,7 +71,8 @@ $$;
 revoke execute on function public.purge_old_data() from public, anon, authenticated;
 grant execute on function public.purge_old_data() to service_role;
 
--- Same jobs as before; only upvane-retention moves from daily to hourly.
+-- Same jobs as before, except: upvane-retention moves from daily to hourly, and the HTTP jobs are only scheduled once
+-- the Vault secrets exist (before, they were scheduled anyway and failed every run).
 create or replace function public.schedule_upvane_jobs()
 returns text
 language plpgsql
@@ -110,6 +111,11 @@ begin
   if to_regnamespace('net') is null or to_regclass('vault.decrypted_secrets') is null then
     return 'SQL jobs scheduled. pg_net or Vault is missing, so monitor-runner and alert-worker were not scheduled.';
   end if;
+  if (select count(distinct name) from vault.decrypted_secrets
+      where name in ('SUPABASE_URL', 'MONITOR_RUNNER_SECRET', 'ALERT_WORKER_SECRET') and coalesce(decrypted_secret, '') <> '') < 3 then
+    return 'SQL jobs scheduled. Create the Vault secrets SUPABASE_URL, MONITOR_RUNNER_SECRET and ALERT_WORKER_SECRET, '
+      'then run select public.schedule_upvane_jobs(); to schedule monitor-runner and alert-worker.';
+  end if;
 
   perform cron.schedule('upvane-monitor-runner', '30 seconds', format(v_http_job, 'monitor-runner', 'MONITOR_RUNNER_SECRET'));
   perform cron.schedule('upvane-alert-worker', '* * * * *', format(v_http_job, 'alert-worker', 'ALERT_WORKER_SECRET'));
@@ -122,7 +128,9 @@ grant execute on function public.schedule_upvane_jobs() to service_role;
 
 do $$
 begin
-  if to_regnamespace('cron') is not null and exists (select 1 from cron.job where jobname = 'upvane-retention') then
-    perform cron.schedule('upvane-retention', '17 * * * *', 'select public.purge_old_data()');
+  if to_regnamespace('cron') is not null then
+    raise notice '%', public.schedule_upvane_jobs();
   end if;
+exception when others then
+  raise notice 'Upvane jobs not rescheduled: %', sqlerrm;
 end $$;

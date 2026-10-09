@@ -56,6 +56,31 @@ begin
   end if;
 end $$;
 
+-- Jobs: retention is hourly; the HTTP jobs wait for the Vault secrets instead of failing every run.
+do $$
+declare
+  v_message text;
+begin
+  delete from vault.secrets where name in ('SUPABASE_URL', 'MONITOR_RUNNER_SECRET', 'ALERT_WORKER_SECRET');
+  v_message := public.schedule_upvane_jobs();
+  if v_message not like '%Create the Vault secrets%' or exists (select 1 from cron.job where jobname = 'upvane-monitor-runner') then
+    raise exception 'Without Vault secrets the HTTP jobs should not be scheduled: %', v_message;
+  end if;
+  if (select schedule from cron.job where jobname = 'upvane-retention') <> '17 * * * *' then
+    raise exception 'upvane-retention should run every hour';
+  end if;
+  perform vault.create_secret('http://localhost:54321', 'SUPABASE_URL');
+  perform vault.create_secret('runner-secret', 'MONITOR_RUNNER_SECRET');
+  perform vault.create_secret('worker-secret', 'ALERT_WORKER_SECRET');
+  v_message := public.schedule_upvane_jobs();
+  if (select count(*) from cron.job where jobname in ('upvane-monitor-runner', 'upvane-alert-worker')) <> 2 then
+    raise exception 'With the Vault secrets both HTTP jobs should be scheduled: %', v_message;
+  end if;
+  if exists (select 1 from cron.job where command like '%runner-secret%') then
+    raise exception 'Secrets must be read from Vault when the job runs, not stored in cron.job';
+  end if;
+end $$;
+
 -- Only the service role can run the purge.
 select tests.as_user(tests.alice());
 do $$
