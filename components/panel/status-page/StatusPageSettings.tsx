@@ -520,6 +520,8 @@ export function StatusPageSettings({ project, domain, tokens, pathPrefix, canEdi
         </div>
       </Card>
 
+      {canEdit ? <DeleteStatusPage project={project} /> : null}
+
       <Dialog
         open={linkDialog}
         onClose={() => {
@@ -565,6 +567,40 @@ export function StatusPageSettings({ project, domain, tokens, pathPrefix, canEdi
         )}
       </Dialog>
     </>
+  )
+}
+
+/** Deleting a page takes its public URL offline and removes everything in it, so it asks for the page's slug. */
+function DeleteStatusPage({ project }: { project: ProjectSettingsResource }) {
+  const router = useRouter()
+  const confirm = useConfirm()
+  const { run, pending } = useAction()
+
+  const remove = async () => {
+    const ok = await confirm({
+      title: `Delete ${project.name}?`,
+      description: 'The public page goes offline and its components, incidents, maintenance windows, monitors, alert rules and subscribers are deleted. This cannot be undone.',
+      confirmLabel: 'Delete status page',
+      requireText: project.slug,
+    })
+    if (!ok) return
+    const done = await run(() => appRequest(`/projects/${project.id}`, { method: 'DELETE' }).then(() => true), { success: `${project.name} deleted`, refresh: false })
+    if (done) router.push('/projects')
+  }
+
+  return (
+    <Card className="danger-zone">
+      <CardHeader title="Danger zone" />
+      <div className="danger-row">
+        <div className="stack" style={{ ['--gap' as string]: '2px' }}>
+          <strong>Delete status page</strong>
+          <span className="help">Takes {project.name} offline for everyone, including subscribers and API clients.</span>
+        </div>
+        <Button variant="danger-ghost" size="sm" onClick={remove} disabled={pending}>
+          Delete status page
+        </Button>
+      </div>
+    </Card>
   )
 }
 
