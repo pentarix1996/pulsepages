@@ -151,3 +151,6 @@
   .comp-row { flex-wrap: wrap; }
   .comp-row .select-wrap { width: 150px; }
 }
+
+/* Postmortem editor: empty timeline */
+.pm-empty { padding: 18px; color: var(--muted); font-size: 13.5px; }

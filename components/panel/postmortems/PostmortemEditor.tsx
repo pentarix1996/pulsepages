@@ -317,7 +317,7 @@ export function PostmortemEditor({ projectId, timeZone, postmortem, incident, ca
               }
             />
             {draft.timeline.length === 0 ? (
-              <p className="mw-section-empty">No timeline entries.</p>
+              <p className="pm-empty">No timeline entries. Add the moments that matter: first signal, page, mitigation, recovery.</p>
             ) : (
               <div className="pm-tl" role="list">
                 {draft.timeline.map((entry, index) => (
