@@ -5,7 +5,7 @@ import { errorJson } from '@/lib/http/responses'
 import { invalid } from '@/lib/domain/errors'
 import { currentRequest, resolveStatusView } from '@/lib/status-page/access'
 import { clientIp } from '@/lib/status-page/cidr'
-import { pageHref } from '@/lib/status-page/links'
+import { pageHref, type PageLocation } from '@/lib/status-page/links'
 import { HONEYPOT_FIELD, normalizeSubscribeFields, subscribeInput, subscribeToPage } from '@/lib/status-page/subscribe'
 
 type Params = { params: Promise<{ org: string; slug: string }> }
@@ -38,10 +38,12 @@ async function readFields(request: Request): Promise<{ fields: Record<string, un
 export async function POST(request: Request, { params }: Params) {
   const { org, slug } = await params
   let form = false
+  let location: PageLocation | null = null
   try {
     const context = await currentRequest()
     const view = await resolveStatusView(org, slug, context)
     if (view.kind !== 'page') return Response.json({ error: 'Status page not found.', code: 'not_found' }, { status: 404, headers: NO_STORE })
+    location = view.location
 
     const ip = clientIp(context.headers) ?? 'unknown'
     const limit = await consumeRateLimit(`subscribe:${view.page.project.id}:${ip}`, 8, 600)
@@ -61,7 +63,9 @@ export async function POST(request: Request, { params }: Params) {
     return Response.json({ data: outcome }, { status: 201, headers: NO_STORE })
   } catch (error) {
     if (form) {
-      const target = new URL(`/status/${encodeURIComponent(org)}/${encodeURIComponent(slug)}?subscribe=error#subscribe`, request.url)
+      // Back to the page on the host the visitor used (custom domains serve the page at "/").
+      const back = location ? pageHref(location, '?subscribe=error#subscribe') : `/status/${encodeURIComponent(org)}/${encodeURIComponent(slug)}?subscribe=error#subscribe`
+      const target = new URL(back, request.url)
       return Response.redirect(target, 303)
     }
     return errorJson(error, NO_STORE)

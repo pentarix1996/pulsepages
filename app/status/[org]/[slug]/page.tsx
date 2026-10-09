@@ -16,6 +16,7 @@ const NOTICES: Record<string, string> = {
   confirmation_sent: 'Check your inbox to confirm your subscription.',
   already_subscribed: 'You are already subscribed to updates.',
   subscribed: 'Subscribed. Updates will arrive with the next incident.',
+  error: 'We could not save that subscription. Check the address and try again, or follow the RSS feed.',
 }
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
