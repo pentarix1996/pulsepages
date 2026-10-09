@@ -90,6 +90,7 @@ describe('probe answers', () => {
     expect(readProbeAnswer('eu-central-1', 200, '<html>', now)).toMatchObject({ status: 'error', error: 'The probe in eu-central-1 answered without a valid result.' })
     expect(readProbeAnswer('eu-central-1', 401, { error: 'Unauthorized.', code: 'unauthorized' }, now)).toMatchObject({ status: 'error', error: 'The probe in eu-central-1 answered HTTP 401: Unauthorized.' })
     expect(readProbeAnswer('eu-central-1', 502, null, now)).toMatchObject({ status: 'error', error: 'The probe in eu-central-1 answered HTTP 502.' })
+    expect(readProbeAnswer('eu-central-1', 503, { code: 'BOOT_ERROR', message: 'Worker failed to boot' }, now).error).toBe('The probe in eu-central-1 answered HTTP 503: Worker failed to boot')
     expect(readProbeAnswer('eu-central-1', 500, { region: 'eu-central-1', status: 'error', latency_ms: null, error: 'UPVANE_SECRETS_KEY is not set.', checked_at: now.toISOString() }, now)).toMatchObject({ status: 'error', error: 'UPVANE_SECRETS_KEY is not set.' })
     // A 5xx never counts as a real down, even if the body says so.
     expect(readProbeAnswer('eu-central-1', 503, { region: 'eu-central-1', status: 'down', latency_ms: 5, checked_at: now.toISOString() }, now).status).toBe('error')

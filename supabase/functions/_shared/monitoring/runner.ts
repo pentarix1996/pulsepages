@@ -121,7 +121,9 @@ export function readProbeAnswer(region: string, httpStatus: number, body: unknow
     return result ?? errorProbeResult(region, `The probe in ${region} answered without a valid result.`, now)
   }
   if (result && result.status === 'error') return result
-  const message = isRecord(body) && typeof body.error === 'string' && body.error !== '' ? `: ${body.error}` : '.'
+  // Upvane errors use `error`; the Supabase gateway and edge runtime use `message` (BOOT_ERROR, WORKER_LIMIT...).
+  const detail = isRecord(body) ? [body.error, body.message].find((value): value is string => typeof value === 'string' && value !== '') : undefined
+  const message = detail ? `: ${detail}` : '.'
   return errorProbeResult(region, `The probe in ${region} answered HTTP ${httpStatus}${message}`.slice(0, MAX_ERROR_LENGTH), now)
 }
 

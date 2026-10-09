@@ -209,8 +209,8 @@ function IncidentRow({ projectId, incident }: { projectId: string; incident: Inc
           {incident.title}
         </Link>
         <span className="inc-sub">
-          {SOURCE_LABELS[incident.source]}
-          {incident.postmortem ? <span>· Postmortem {incident.postmortem.status === 'published' ? 'published' : 'draft'}</span> : null}
+          <span>{SOURCE_LABELS[incident.source]}</span>
+          {incident.postmortem ? <span className={incident.postmortem.status === 'published' ? 's-operational' : undefined}>Postmortem {incident.postmortem.status === 'published' ? 'published' : 'draft'}</span> : null}
         </span>
       </span>
       <span role="cell" className="c-stage">
