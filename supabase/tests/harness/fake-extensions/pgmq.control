@@ -1,0 +1,5 @@
+# Test-only stand-in for Supabase Queues (pgmq). Never install in production.
+comment = 'Upvane test stub for pgmq'
+default_version = '0.0.1'
+relocatable = false
+schema = pgmq
