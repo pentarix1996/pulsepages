@@ -16,7 +16,7 @@ export const env = {
   /** Base64 of 32 random bytes; encrypts monitor headers, channel secrets and subscriber targets. */
   secretsKey: () => required('UPVANE_SECRETS_KEY'),
   resendApiKey: () => process.env.RESEND_API_KEY ?? null,
-  emailFrom: () => process.env.ALERTS_EMAIL_FROM ?? 'Upvane <alerts@upvane.dev>',
+  emailFrom: () => process.env.ALERTS_EMAIL_FROM ?? 'Upvane <alerts@upvane.com>',
   billingMode: () => (process.env.BILLING_MODE ?? 'demo') as 'demo' | 'stripe',
   monitorRunnerSecret: () => process.env.MONITOR_RUNNER_SECRET ?? null,
   vercel: () => ({

@@ -1,4 +1,5 @@
 // Every area registers its operations on import (order = order in the document).
+import './me'
 import './projects'
 import './components'
 import './incidents'
