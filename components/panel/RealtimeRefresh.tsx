@@ -4,7 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
-const PROJECT_TABLES = ['components', 'incidents', 'maintenances', 'monitors'] as const
+// Not `monitors`: every run updates its row (claim, last check), which would refresh open pages every few seconds.
+// Monitor state changes reach these pages through `components` (linked components) and the monitor pages poll.
+const PROJECT_TABLES = ['components', 'incidents', 'maintenances'] as const
 const CHILD_TABLES = ['incident_updates', 'incident_components'] as const
 
 /**

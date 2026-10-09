@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { AutoRefresh } from '@/components/status/AutoRefresh'
+import { AutoRefresh } from '@/components/ui/AutoRefresh'
 import { ActiveIncident, ComponentsCard, MaintenanceCard, OverallBanner, PastDaysCard } from '@/components/status/page/Sections'
 import { PrivateGate } from '@/components/status/page/PrivateGate'
 import { StatusShell, subscribeOptions } from '@/components/status/page/StatusShell'

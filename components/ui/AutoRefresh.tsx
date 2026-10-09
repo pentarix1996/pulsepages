@@ -4,8 +4,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 
 /**
- * Keeps an open status page current during an outage: re-renders from the server every `seconds` while the tab is
- * visible, and right away when the visitor comes back to a stale tab. Client state (open groups, popover) is kept.
+ * Keeps an open page current: re-renders from the server every `seconds` while the tab is visible, and right away when
+ * the visitor comes back to a stale tab. Client state (open groups, popovers, form drafts) is kept. Used by the public
+ * status page and by dashboard pages whose data changes too often for Realtime (monitor runs).
  */
 export function AutoRefresh({ seconds = 60 }: { seconds?: number }) {
   const router = useRouter()

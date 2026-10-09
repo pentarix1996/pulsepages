@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { AutoRefresh } from '@/components/ui/AutoRefresh'
 import { hasRole } from '@shared/domain.ts'
 import { MonitorHeader } from '@/components/panel/monitors/MonitorHeader'
 import { AlertRoutingCard, HeartbeatCard, MonitorConfigCard, RegionTiles } from '@/components/panel/monitors/MonitorPanels'
@@ -38,6 +39,8 @@ export default async function MonitorPage({ params, searchParams }: { params: Pr
 
   return (
     <>
+      {/* Monitor runs are not streamed over Realtime (too frequent); poll while the page is open. */}
+      <AutoRefresh seconds={30} />
       <MonitorHeader projectId={projectRef} monitor={monitor} canEdit={hasRole(access.role, 'admin')} canRun={hasRole(access.role, 'responder')} />
       {isHeartbeat ? (
         <HeartbeatCard monitor={monitor} />

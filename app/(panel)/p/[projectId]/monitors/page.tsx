@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { AutoRefresh } from '@/components/ui/AutoRefresh'
 import { redirect } from 'next/navigation'
 import { hasRole, type MonitorState } from '@shared/domain.ts'
 import { planLimit } from '@shared/plans.ts'
@@ -39,6 +40,8 @@ export default async function MonitorsPage({ params, searchParams }: { params: P
 
   return (
     <>
+      {/* Monitor runs are not streamed over Realtime (too frequent); poll while the page is open. */}
+      <AutoRefresh seconds={30} />
       <PageHeader
         title="Monitors"
         subtitle="Checks from several regions that set component status and open draft incidents when something breaks."
