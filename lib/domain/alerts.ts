@@ -9,6 +9,7 @@ import { renderRecipientVerificationEmail } from '@shared/emails.ts'
 import { validateMonitorUrlWithDns } from '@shared/monitoring/ssrf.ts'
 import { sendEmail } from '@/lib/email'
 import { env } from '@/lib/env'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { isUuid, requireProject, type ProjectAccess } from './access'
 import { audit } from './audit'
 import { actorUserId, type DomainContext } from './context'
@@ -855,4 +856,20 @@ export async function listAlertEvents(ctx: DomainContext, projectRef: string, pa
       deliveries: deliveries.filter((delivery) => delivery.event_id === row.id).map(toDeliveryResource),
     })),
   }
+}
+
+// ------------------------------------------------------------------ recipient confirmation (public link)
+
+/**
+ * Confirms an alert email recipient from the link in the confirmation email. The token is the only authority
+ * (it is single-use: the hash is cleared on success). Returns null when the link is unknown or already used.
+ */
+export async function verifyAlertRecipientToken(token: string): Promise<{ email: string; project_name: string | null } | null> {
+  if (!/^[A-Za-z0-9_-]{16,200}$/.test(token)) return null
+  const { data, error } = await createAdminClient().rpc('verify_alert_recipient', { p_token: token })
+  if (error) {
+    console.error('[alerts] verify_alert_recipient failed', error.message)
+    throw new DomainError('unavailable', 'The confirmation could not be saved. Try the link again in a moment.')
+  }
+  return (data as { email: string; project_name: string | null } | null) ?? null
 }

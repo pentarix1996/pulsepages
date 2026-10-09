@@ -21,3 +21,13 @@
 .invite-summary { margin: 0; display: flex; flex-direction: column; }
 .invite-summary dd { margin: 0; }
 .input-group > .btn-ghost { background: var(--sunken); }
+
+/* Status page settings (p/[id]/status-page) */
+.sp-hero { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px; }
+.sp-url { font-size: 15px; color: var(--text); overflow-wrap: anywhere; }
+.sp-url:hover { color: var(--text-strong); text-decoration: underline; text-underline-offset: 3px; }
+.sp-color { width: 38px; height: 38px; padding: 0; border: 1px solid var(--line2); border-radius: var(--radius-md); background: transparent; flex: none; cursor: pointer; }
+.sp-color:disabled { cursor: not-allowed; opacity: 0.5; }
+.sp-logo { height: 38px; max-width: 160px; object-fit: contain; border-radius: var(--radius-sm); background: var(--sunken); border: 1px solid var(--line); padding: 4px 8px; }
+.sp-logo-empty { display: inline-flex; align-items: center; color: var(--faint); font-size: 12.5px; }
+label.btn.is-disabled { opacity: 0.5; pointer-events: none; }

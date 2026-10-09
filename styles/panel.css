@@ -74,6 +74,11 @@
 .auth-card .card-b { display: flex; flex-direction: column; gap: 16px; padding: 24px; }
 .auth-title { font-stretch: 80%; font-weight: 640; font-size: 32px; line-height: 1.05; letter-spacing: -0.015em; }
 
+/* Form layout shared by panel forms. */
+.mf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 16px; }
+.mf-actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.mf-toggles { display: flex; flex-direction: column; gap: 10px; }
+
 @media (max-width: 860px) {
   .shell { flex-direction: column; }
   .side { width: auto; height: auto; position: static; border-right: 0; border-bottom: 1px solid var(--line); padding: 14px 16px; gap: 12px; }
