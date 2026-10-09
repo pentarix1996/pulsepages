@@ -31,7 +31,8 @@ function hostOf(value: string | undefined | null): string | null {
 
 function isAppHost(host: string): boolean {
   const bare = host.split(':')[0]!
-  if (bare === 'localhost' || bare === '127.0.0.1' || bare.endsWith('.vercel.app') || bare.endsWith('.local')) return true
+  // host.docker.internal: Edge Functions in the local Supabase stack call Next through it.
+  if (bare === 'localhost' || bare === '127.0.0.1' || bare === 'host.docker.internal' || bare.endsWith('.vercel.app') || bare.endsWith('.local')) return true
   const appHost = hostOf(process.env.NEXT_PUBLIC_APP_URL)
   if (appHost && (host === appHost || bare === appHost.split(':')[0])) return true
   return false
@@ -77,6 +78,14 @@ function withPathHeader(request: NextRequest): Headers {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const host = (request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? '').toLowerCase()
+
+  // RFC 8058 one-click unsubscribe: mail providers POST to the List-Unsubscribe URL (/subscriptions/unsubscribe),
+  // which is a page for people; the POST goes to its route handler.
+  if (request.method === 'POST' && pathname === '/subscriptions/unsubscribe' && !request.headers.has('next-action')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/api/public/subscriptions/unsubscribe'
+    return NextResponse.rewrite(url)
+  }
 
   // api.<domain>/v1/... → /api/v1/...
   const apiHost = process.env.UPVANE_API_HOST?.toLowerCase()

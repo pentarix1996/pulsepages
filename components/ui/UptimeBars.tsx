@@ -21,7 +21,8 @@ function summary(days: UptimeDay[]): string {
 
 /** One bar per day with a hover tooltip (minutes per status, incidents). The group exposes a text summary. */
 export function UptimeBars({ days, label, size = 'md', showLegend = false, uptime }: { days: UptimeDay[]; label: string; size?: 'md' | 'lg'; showLegend?: boolean; uptime?: string }) {
-  const edge = Math.min(10, Math.floor(days.length / 6))
+  // Tooltips near either end anchor to that end so they stay on screen (a tip is ~220 px wide).
+  const edge = Math.ceil(days.length * 0.3)
   return (
     <div className="stack" style={{ ['--gap' as string]: '6px' }}>
       <div className={['bars', size === 'lg' ? 'bars-lg' : ''].join(' ')} role="img" aria-label={`${label}: ${summary(days)}${uptime ? `, ${uptime} uptime` : ''}`}>

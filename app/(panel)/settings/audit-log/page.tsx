@@ -4,7 +4,7 @@ import { AuditLogView } from '@/components/panel/settings/AuditLogView'
 import { NoOrganization } from '@/components/panel/settings/NoOrganization'
 import { Card, EmptyState } from '@/components/ui/Card'
 import { AUDIT_ACTION_GROUPS, auditExportAllowed, listAuditLog } from '@/lib/domain/audit-log'
-import { auditLogFilters } from '@/lib/domain/schemas/organizations'
+import { auditLogFilters, type AuditLogFilters } from '@/lib/domain/schemas/organizations'
 import { guard, panelContext } from '@/lib/panel/server'
 import { settingsScope } from '../_lib/scope'
 
@@ -23,7 +23,7 @@ export default async function AuditLogPage({ searchParams }: { searchParams: Pro
     )
   }
   const parsed = auditLogFilters.safeParse({ action: query.action, actor: query.actor, from: query.from, to: query.to })
-  const filters = parsed.success ? parsed.data : {}
+  const filters: AuditLogFilters = parsed.success ? parsed.data : { action: undefined }
   const { entries, nextCursor } = await guard(() => listAuditLog(ctx, organization.id, filters, query.cursor ?? null))
   return (
     <AuditLogView

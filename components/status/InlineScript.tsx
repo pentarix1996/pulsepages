@@ -8,5 +8,5 @@ export function InlineScript({ code }: { code: string }) {
 
 /** JSON for embedding in an inline script: `<` is escaped so a value can never close the script element. */
 export function scriptJson(value: unknown): string {
-  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/ /g, '\\u2028').replace(/ /g, '\\u2029')
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029')
 }
