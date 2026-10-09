@@ -33,7 +33,8 @@ resource "upvane_monitor" "payments" {
   regions          = ["eu-central-1", "us-east-1", "ap-southeast-1"]
   confirm_regions  = 2
   components       = [upvane_component.payments.id]
-  config = {
+
+  http {
     url = "https://api.quillbase.io/v2/payments/health"
   }
 }`,

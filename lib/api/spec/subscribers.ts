@@ -41,7 +41,7 @@ operation({
   operationId: 'verifyCustomDomain',
   summary: 'Verify the custom domain',
   description: 'Re-checks DNS (or the Vercel domain) and updates `custom_domain_status`: verified, pending (with what is missing in `custom_domain_error`) or error.',
-  tag: 'Projects',
+  tag: 'Status pages',
   scope: 'write',
   response: resources.has('Project') ? 'Project' : projectSettingsResource,
 })
