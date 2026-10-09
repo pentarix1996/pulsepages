@@ -1,14 +1,17 @@
-// monitor-probe: runs one check in the region it is invoked in and answers a ProbeResult.
-//   POST, Authorization: Bearer <MONITOR_PROBE_SECRET or MONITOR_RUNNER_SECRET>, body: ProbeRequest.
-// The runner invokes it once per region with `x-region: <region>` (Supabase regional invocation). The region reported
-// is SB_REGION (set by Supabase); locally, where it is absent, the x-region header is echoed and marked simulated.
+// monitor-probe: runs checks in the region it is invoked in.
+//   POST, Authorization: Bearer <MONITOR_PROBE_SECRET or MONITOR_RUNNER_SECRET>
+//   body ProbeRequest                  → ProbeResult (one check; what older runners send)
+//   body { requests: ProbeRequest[] }  → { results: ProbeResult[] } (up to MAX_PROBE_BATCH, same order; an invalid
+//                                        request gets an `error` result instead of failing the batch)
+// The runner invokes it with `x-region: <region>` (Supabase regional invocation). The region reported is SB_REGION
+// (set by Supabase); locally, where it is absent, the x-region header is echoed and marked simulated.
 import { hasBearerSecret } from '../_shared/edge/auth.ts'
 import { systemRecordLookup } from '../_shared/edge/dns.ts'
 import { readEnv } from '../_shared/edge/env.ts'
 import { errorResponse, jsonResponse, readJsonBody } from '../_shared/edge/http.ts'
 import { errorMessage, log } from '../_shared/edge/log.ts'
 import { parseProbeRequest } from '../_shared/monitoring/probe.ts'
-import { errorProbeResult } from '../_shared/monitoring/runner.ts'
+import { errorProbeResult, mapWithConcurrency, MAX_PROBE_BATCH, PROBE_BATCH_CONCURRENCY } from '../_shared/monitoring/runner.ts'
 import type { ProbeResult } from '../_shared/monitoring/types.ts'
 import { runCheck } from './checks.ts'
 import type { ProbeDeps } from './checks.ts'
@@ -68,16 +71,34 @@ export async function handleProbeRequest(request: Request, overrides: Partial<Pr
   }
   if (!(await hasBearerSecret(request, secrets))) return errorResponse(401, 'unauthorized', 'Unauthorized.')
 
-  const started = performance.now()
   const { region, simulated } = probeRegion(request)
   const body = await readJsonBody(request)
-  const parsed = body.ok ? parseProbeRequest(body.value) : ({ ok: false, error: 'The request body is not valid JSON.' } as const)
-  if (!parsed.ok) return jsonResponse(markSimulated(errorProbeResult(region, parsed.error), simulated), 400)
+  if (!body.ok) return jsonResponse(markSimulated(errorProbeResult(region, 'The request body is not valid JSON.'), simulated), 400)
+  const deps = { ...defaultProbeDeps(), ...overrides }
+
+  const batch = typeof body.value === 'object' && body.value !== null && !Array.isArray(body.value) ? (body.value as { requests?: unknown }).requests : undefined
+  if (batch !== undefined) {
+    if (!Array.isArray(batch) || batch.length === 0 || batch.length > MAX_PROBE_BATCH) {
+      return errorResponse(400, 'invalid_request', `Send between 1 and ${MAX_PROBE_BATCH} checks in requests.`)
+    }
+    const results = await mapWithConcurrency(batch, PROBE_BATCH_CONCURRENCY, async (raw) => (await runOne(raw, region, simulated, deps)).result)
+    return jsonResponse({ results })
+  }
+
+  const outcome = await runOne(body.value, region, simulated, deps)
+  return jsonResponse(outcome.result, outcome.status)
+}
+
+/** Validates and runs one check; never throws. `status` is the HTTP status for a single-check request. */
+async function runOne(raw: unknown, region: string, simulated: boolean, deps: ProbeDeps): Promise<{ result: ProbeResult; status: number }> {
+  const started = performance.now()
+  const parsed = parseProbeRequest(raw)
+  if (!parsed.ok) return { result: markSimulated(errorProbeResult(region, parsed.error), simulated), status: 400 }
 
   let result: ProbeResult
   let status = 200
   try {
-    result = await runCheck(parsed.request, region, { ...defaultProbeDeps(), ...overrides })
+    result = await runCheck(parsed.request, region, deps)
   } catch (error) {
     log('error', 'probe_failed', { monitor_id: parsed.request.monitor_id, type: parsed.request.type, region, error: errorMessage(error) })
     result = errorProbeResult(region, 'The probe failed unexpectedly. Try again in a moment.')
@@ -94,5 +115,5 @@ export async function handleProbeRequest(request: Request, overrides: Partial<Pr
     duration_ms: Math.round(performance.now() - started),
     error: result.error ?? null,
   })
-  return jsonResponse(result, status)
+  return { result, status }
 }

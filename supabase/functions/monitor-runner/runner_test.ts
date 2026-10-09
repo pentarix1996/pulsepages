@@ -3,7 +3,7 @@ import { silentLogger } from '../_shared/edge/log.ts'
 import { DatabaseError } from '../_shared/edge/supabase.ts'
 import type { AdminClient } from '../_shared/edge/supabase.ts'
 import type { ProbeRequest, ProbeResult } from '../_shared/monitoring/types.ts'
-import { handleRunnerRequest, probeCaller } from './handler.ts'
+import { coalesceProbes, handleRunnerRequest, probeBatchSender, probeCaller } from './handler.ts'
 import { runDueMonitors, runMonitor, runMonitorNow } from './runner.ts'
 import type { RunnerDeps } from './runner.ts'
 import { parseRunPayload } from '../_shared/monitoring/runner.ts'
@@ -209,4 +209,55 @@ Deno.test('handler: secret, body validation and run-now through HTTP', async () 
   } finally {
     Deno.env.delete('MONITOR_RUNNER_SECRET')
   }
+})
+
+const probeRequest = (monitorId: string): ProbeRequest => ({ monitor_id: monitorId, type: 'http', config: {}, timeout_ms: 1000, secret_headers: null })
+
+Deno.test('coalesceProbes sends one request per region and batch and routes each result back', async () => {
+  const calls: Array<{ region: string; ids: string[] }> = []
+  const probe = coalesceProbes(
+    async (region, requests) => {
+      calls.push({ region, ids: requests.map((request) => request.monitor_id) })
+      return requests.map((request) => result(region, 'up', { latency_ms: Number(request.monitor_id.slice(1)) }))
+    },
+    { maxBatch: 2, waitMs: 1 },
+  )
+  const answers = await Promise.all([probe('eu-central-1', probeRequest('m1')), probe('eu-central-1', probeRequest('m2')), probe('eu-central-1', probeRequest('m3')), probe('us-east-1', probeRequest('m4'))])
+  assertEquals(answers.map((answer) => [answer.region, answer.latency_ms]), [['eu-central-1', 1], ['eu-central-1', 2], ['eu-central-1', 3], ['us-east-1', 4]])
+  assertEquals(calls, [
+    { region: 'eu-central-1', ids: ['m1', 'm2'] },
+    { region: 'eu-central-1', ids: ['m3'] },
+    { region: 'us-east-1', ids: ['m4'] },
+  ])
+
+  const broken = coalesceProbes(async () => Promise.reject(new TypeError('fetch failed')), { waitMs: 0 })
+  assertEquals((await broken('eu-central-1', probeRequest('m1'))).status, 'error')
+})
+
+Deno.test('probeBatchSender sends batches as { requests } and turns bad answers into one error per check', async () => {
+  let sent: unknown = null
+  const good = probeBatchSender({
+    url: 'http://probe',
+    secret: 's',
+    now: () => NOW,
+    fetch: (async (_input: string | URL | Request, init?: RequestInit) => {
+      sent = JSON.parse(String(init?.body))
+      return Response.json({ results: [result('us-east-1', 'up'), result('us-east-1', 'down')] })
+    }) as typeof fetch,
+  })
+  const answers = await good('us-east-1', [probeRequest('m1'), probeRequest('m2')])
+  assertEquals(answers.map((answer) => answer.status), ['up', 'down'])
+  assertEquals((sent as { requests: ProbeRequest[] }).requests.map((request) => request.monitor_id), ['m1', 'm2'])
+
+  const short = probeBatchSender({ url: 'http://probe', secret: 's', now: () => NOW, fetch: (async () => Response.json({ results: [result('us-east-1', 'up')] })) as typeof fetch })
+  assertEquals((await short('us-east-1', [probeRequest('m1'), probeRequest('m2')])).map((answer) => answer.error), [
+    'The probe in us-east-1 answered without a valid result.',
+    'The probe in us-east-1 answered without a valid result.',
+  ])
+
+  const crashed = probeBatchSender({ url: 'http://probe', secret: 's', now: () => NOW, fetch: (async () => Response.json({ error: 'WORKER_LIMIT' }, { status: 546 })) as typeof fetch })
+  assertEquals((await crashed('us-east-1', [probeRequest('m1'), probeRequest('m2')])).map((answer) => answer.error), [
+    'The probe in us-east-1 answered HTTP 546: WORKER_LIMIT',
+    'The probe in us-east-1 answered HTTP 546: WORKER_LIMIT',
+  ])
 })

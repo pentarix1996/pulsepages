@@ -116,7 +116,7 @@ export interface CronOptions {
   budgetMs: number
 }
 
-export const CRON_DEFAULTS: CronOptions = { batchSize: 25, concurrency: 8, budgetMs: 25_000 }
+export const CRON_DEFAULTS: CronOptions = { batchSize: 25, concurrency: 20, budgetMs: 25_000 }
 
 export interface CronSummary {
   source: 'cron'

@@ -127,6 +127,48 @@ export function readProbeAnswer(region: string, httpStatus: number, body: unknow
   return errorProbeResult(region, `The probe in ${region} answered HTTP ${httpStatus}${message}`.slice(0, MAX_ERROR_LENGTH), now)
 }
 
+/**
+ * Checks per monitor-probe invocation. The runner groups the checks it needs in a region at the same moment into one
+ * request (`{ requests: [...] }`), so a busy minute costs one invocation per region per batch instead of one per check.
+ */
+export const MAX_PROBE_BATCH = 10
+
+/** Checks a probe runs at the same time inside one batch. */
+export const PROBE_BATCH_CONCURRENCY = 5
+
+/** Body monitor-probe accepts: one ProbeRequest (also what older runners send) or a batch. */
+export function probeRequestBody(requests: ProbeRequest[]): unknown {
+  return requests.length === 1 ? requests[0] : { requests }
+}
+
+/**
+ * Turns monitor-probe's answer to `requests` (one or a batch) into one ProbeResult per request, in order. An answer
+ * that cannot be matched to the requests becomes an `error` result for each of them.
+ */
+export function readProbeAnswers(region: string, httpStatus: number, body: unknown, count: number, now: Date = new Date()): ProbeResult[] {
+  if (count === 1) return [readProbeAnswer(region, httpStatus, body, now)]
+  const ok = httpStatus >= 200 && httpStatus < 300
+  if (ok && isRecord(body) && Array.isArray(body.results) && body.results.length === count) {
+    return body.results.map((item) => normalizeProbeResult(region, item, now) ?? errorProbeResult(region, `The probe in ${region} answered without a valid result.`, now))
+  }
+  const failure = ok ? errorProbeResult(region, `The probe in ${region} answered without a valid result.`, now) : readProbeAnswer(region, httpStatus, body, now)
+  return Array.from({ length: count }, () => ({ ...failure }))
+}
+
+/** Runs `work` over `items` with at most `limit` in flight, keeping the order of the results. */
+export async function mapWithConcurrency<T, R>(items: readonly T[], limit: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let next = 0
+  const lanes = Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, async () => {
+    while (next < items.length) {
+      const index = next++
+      results[index] = await work(items[index]!, index)
+    }
+  })
+  await Promise.all(lanes)
+  return results
+}
+
 /** Earliest certificate expiry reported by the results (TLS monitors), for record_monitor_run(p_tls_expires_at). */
 export function earliestTlsExpiry(results: ProbeResult[]): string | null {
   const dates = results

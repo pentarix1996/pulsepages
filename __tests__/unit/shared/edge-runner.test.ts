@@ -6,11 +6,14 @@ import {
   drainWithBudget,
   earliestTlsExpiry,
   errorProbeResult,
+  mapWithConcurrency,
   normalizeProbeResult,
+  probeRequestBody,
   parseRegionAllowList,
   parseRunnerCommand,
   parseRunPayload,
   readProbeAnswer,
+  readProbeAnswers,
   selectProbeRegions,
 } from '@shared/monitoring/runner.ts'
 
@@ -172,5 +175,41 @@ describe('drainWithBudget', () => {
       { concurrency: 1, budgetMs: 1000 },
     )
     expect(itemFailure).toMatchObject({ claimed: 2, processed: 2 })
+  })
+})
+
+describe('probe batches', () => {
+  const request = buildProbeRequest(parseRunPayload(claimRow)!)
+
+  it('sends a single check as before and several as a batch', () => {
+    expect(probeRequestBody([request])).toEqual(request)
+    expect(probeRequestBody([request, request])).toEqual({ requests: [request, request] })
+  })
+
+  it('maps batch answers in order and fails every check on an unusable answer', () => {
+    const up = { region: 'x', status: 'up', latency_ms: 10.4, http_status: 200, error: null, checked_at: now.toISOString() }
+    const answers = readProbeAnswers('eu-central-1', 200, { results: [up, { status: 'nope' }] }, 2, now)
+    expect(answers.map((answer) => [answer.region, answer.status, answer.latency_ms])).toEqual([
+      ['eu-central-1', 'up', 10],
+      ['eu-central-1', 'error', null],
+    ])
+    expect(readProbeAnswers('eu-central-1', 200, { results: [up] }, 2, now).every((answer) => answer.status === 'error')).toBe(true)
+    expect(readProbeAnswers('eu-central-1', 503, { error: 'Busy' }, 3, now).map((answer) => answer.error)).toEqual(Array(3).fill('The probe in eu-central-1 answered HTTP 503: Busy'))
+    expect(readProbeAnswers('eu-central-1', 200, up, 1, now)[0]!.status).toBe('up')
+  })
+
+  it('runs work with bounded concurrency and keeps order', async () => {
+    let running = 0
+    let peak = 0
+    const out = await mapWithConcurrency([30, 5, 20, 1, 10], 2, async (ms, index) => {
+      running += 1
+      peak = Math.max(peak, running)
+      await new Promise((resolve) => setTimeout(resolve, ms))
+      running -= 1
+      return index
+    })
+    expect(out).toEqual([0, 1, 2, 3, 4])
+    expect(peak).toBe(2)
+    expect(await mapWithConcurrency([], 3, async () => 1)).toEqual([])
   })
 })

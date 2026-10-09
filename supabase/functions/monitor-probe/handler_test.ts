@@ -68,3 +68,30 @@ Deno.test(
     assertEquals([heartbeat.status, (await heartbeat.json()).status], [400, 'error'])
   }),
 )
+
+Deno.test(
+  'probe: runs a batch of checks in order and isolates bad requests',
+  withEnv({ MONITOR_PROBE_SECRET: 'probe-secret', SB_REGION: undefined }, async () => {
+    const response = await handleProbeRequest(probeCall({ requests: [httpBody, { ...httpBody, type: 'heartbeat' }, { ...httpBody, monitor_id: 'm3' }] }), stubs)
+    assertEquals(response.status, 200)
+    const { results } = await response.json()
+    assertEquals(results.map((item: { region: string; status: string }) => [item.region, item.status]), [
+      ['us-east-1', 'up'],
+      ['us-east-1', 'error'],
+      ['us-east-1', 'up'],
+    ])
+    assertEquals(results[0].details.region_simulated, true)
+  }),
+)
+
+Deno.test(
+  'probe: rejects empty and oversized batches',
+  withEnv({ MONITOR_PROBE_SECRET: 'probe-secret', SB_REGION: undefined }, async () => {
+    const empty = await handleProbeRequest(probeCall({ requests: [] }), stubs)
+    assertEquals([empty.status, (await empty.json()).code], [400, 'invalid_request'])
+    const tooMany = await handleProbeRequest(probeCall({ requests: Array.from({ length: 11 }, () => httpBody) }), stubs)
+    assertEquals(tooMany.status, 400)
+    const notArray = await handleProbeRequest(probeCall({ requests: 'all' }), stubs)
+    assertEquals(notArray.status, 400)
+  }),
+)

@@ -57,7 +57,7 @@ operation({
   response: 'MonitorRun',
   idempotent: true,
 })
-operation({ method: 'get', path: '/projects/{project}/monitors/{monitor}/results', operationId: 'listMonitorResults', summary: 'List check results', description: 'Newest first.', tag, scope: 'read', query: monitorResultsQuery, response: 'CheckResult', list: true })
+operation({ method: 'get', path: '/projects/{project}/monitors/{monitor}/results', operationId: 'listMonitorResults', summary: 'List check results', description: 'Newest first. Raw results are kept 7 days on Free, 14 on Pro and 30 on Business.', tag, scope: 'read', query: monitorResultsQuery, response: 'CheckResult', list: true })
 
 const heartbeatTag = 'Heartbeats'
 const heartbeatAuth = 'No API key: the token in the URL is the secret. Rate limited to 60 requests per minute per token.'
