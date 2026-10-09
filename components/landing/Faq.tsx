@@ -1,55 +1,109 @@
-'use client'
+import type { ReactNode } from 'react'
+import { apiRateLimitPerMinute, formatLimit, planLimit } from '@shared/plans.ts'
+import { PROBE_REGIONS } from '@shared/regions.ts'
+import { PlusIcon } from '@/components/ui/icons'
 
-import { useState } from 'react'
+interface Question {
+  id: string
+  question: string
+  answer: ReactNode
+}
 
-const faqs = [
-  { q: 'How quickly can I set up a status page?', a: 'You can have your status page live in under 30 seconds. Just sign up, create a project, add your components, and share the public URL.' },
-  { q: 'Can I use my own domain?', a: 'Yes! Pro and Business plans support custom domains. Simply add a CNAME record pointing to our servers and configure it in your project settings.' },
-  { q: 'How does the API work?', a: 'Our REST API allows you to programmatically update component statuses. Perfect for CI/CD pipelines and automated monitoring. API access is available on Pro and Business plans.' },
-  { q: 'Is there a free plan?', a: 'The Free plan is available forever with 1 project and 3 components. Pro and Business plans can be purchased directly — no credit card required to sign up.' },
-  { q: 'What happens when I exceed my plan limits?', a: "You'll see a notification when you reach your limits. You can upgrade at any time to unlock more projects and components. Your existing data is never deleted." },
-  { q: 'Can I downgrade my plan?', a: 'Yes, you can downgrade at any time. Your extra projects will become read-only until you remove them to fit within the new plan limits.' },
-  { q: 'Do you offer refunds?', a: 'We offer a 30-day money-back guarantee on all paid plans. If you are not satisfied, contact our support team for a full refund.' },
-]
+function questions(): Question[] {
+  const proRegions = planLimit('pro', 'regions_per_monitor')
+  const freeRegions = planLimit('free', 'regions_per_monitor')
+  return [
+    {
+      id: 'regions',
+      question: 'Do checks run from more than one region?',
+      answer: (
+        <>
+          Yes, on paid plans. Free monitors check from {freeRegions} region, Pro monitors from up to {proRegions} and Business monitors from any of the{' '}
+          {PROBE_REGIONS.length}. A region confirms a failure after the number of consecutive failed checks you set (2 by default), and a monitor only goes
+          down when the number of regions you choose agree. Errors on our probes never count as failures.
+        </>
+      ),
+    },
+    {
+      id: 'downgrade',
+      question: 'What happens if we downgrade?',
+      answer: (
+        <>
+          Monitors over the new plan&apos;s limit are paused, newest first, and resume when you upgrade again. Check intervals and regions drop to what the plan
+          allows, a custom domain is suspended, and history older than the plan keeps is hidden.
+        </>
+      ),
+    },
+    {
+      id: 'private',
+      question: 'Who can see a private status page?',
+      answer: (
+        <>
+          Private pages are part of Business. They are visible to members of your organization, who can sign in with SSO, to visitors from IP ranges you
+          allow, and to anyone with an access link you create and can revoke.
+        </>
+      ),
+    },
+    {
+      id: 'domain',
+      question: 'Can the status page live on our own domain?',
+      answer: (
+        <>
+          Yes, on Pro and Business. Point a CNAME such as <span className="mono">status.yourcompany.com</span> at the target shown in your status page
+          settings. Upvane verifies the record, and the TLS certificate is issued and renewed for you.
+        </>
+      ),
+    },
+    {
+      id: 'rate-limits',
+      question: 'Are there API rate limits?',
+      answer: (
+        <>
+          Yes, per API key: {formatLimit(apiRateLimitPerMinute('pro'))} requests a minute on Pro and {formatLimit(apiRateLimitPerMinute('business'))} on
+          Business. Every response includes <span className="mono">X-RateLimit-Limit</span>, <span className="mono">X-RateLimit-Remaining</span> and{' '}
+          <span className="mono">X-RateLimit-Reset</span>, and a <span className="mono">429</span> comes with <span className="mono">Retry-After</span>.
+        </>
+      ),
+    },
+    {
+      id: 'as-code',
+      question: 'Can we manage everything as code?',
+      answer: (
+        <>
+          Status pages, component groups, components, monitors, alert channels and rules, maintenance windows and SLOs are Terraform resources, and incidents
+          have their own API endpoints and CLI commands. API keys can be read-only, limited to one status page, and rotated without downtime.
+        </>
+      ),
+    },
+    {
+      id: 'data',
+      question: 'Where is our data stored?',
+      answer: (
+        <>
+          In Upvane&apos;s Postgres database on Supabase, in the region of our Supabase project. Probes in other regions send their results there and keep
+          nothing. Secrets such as monitor headers and alert channel URLs are encrypted before they are stored and never returned by the API.
+        </>
+      ),
+    },
+  ]
+}
 
 export function Faq() {
-  const [openIndex, setOpenIndex] = useState<number | null>(null)
-
+  const items = questions()
   return (
-    <section className="faq" id="faq">
-      <div className="faq-header">
-        <h2 className="faq-title">Frequently asked questions</h2>
-        <p className="faq-subtitle">Everything you need to know about Upvane.</p>
-      </div>
-      <div className="faq-list">
-        {faqs.map((faq, index) => (
-          <div className={`faq-item ${openIndex === index ? 'active' : ''}`} key={index}>
-            <a
-              className="faq-question"
-              href="#"
-              role="button"
-              onClick={(e) => { e.preventDefault(); setOpenIndex(openIndex === index ? null : index) }}
-              aria-expanded={openIndex === index}
-            >
-              {faq.q}
-              <svg
-                className="faq-question-icon"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </a>
-            <div className="faq-answer">
-              <p className="faq-answer-text">{faq.a}</p>
-            </div>
-          </div>
+    <section id="faq" className="lp-wrap lp-section lp-faq" aria-labelledby="faq-title">
+      <h2 className="lp-h2" id="faq-title">
+        Questions teams ask before switching
+      </h2>
+      <div className="lp-faq-list">
+        {items.map((item, index) => (
+          <details key={item.id} open={index === 0}>
+            <summary>
+              {item.question}
+              <PlusIcon size={18} />
+            </summary>
+            <p>{item.answer}</p>
+          </details>
         ))}
       </div>
     </section>

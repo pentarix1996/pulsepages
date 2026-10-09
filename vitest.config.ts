@@ -10,11 +10,12 @@ export default defineConfig({
     include: ['__tests__/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      include: ['lib/**', 'components/**', 'hooks/**'],
+      include: ['lib/**', 'components/**', 'hooks/**', 'supabase/functions/_shared/**'],
     },
   },
   resolve: {
     alias: {
+      '@shared': path.resolve(__dirname, './supabase/functions/_shared'),
       '@': path.resolve(__dirname, './'),
       'server-only': path.resolve(__dirname, './__tests__/mocks/server-only.ts'),
     },

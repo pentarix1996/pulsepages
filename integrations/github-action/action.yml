@@ -1,0 +1,58 @@
+name: Upvane maintenance window
+description: Opens an Upvane maintenance window while the job runs (for example a deploy) and completes it when the job ends.
+author: Upvane
+branding:
+  icon: tool
+  color: purple
+inputs:
+  api-key:
+    description: Upvane API key with write access (store it as a secret).
+    required: true
+  project:
+    description: Status page key or id.
+    required: true
+  title:
+    description: Title shown on the status page, such as "Deploy v2.4".
+    required: true
+  components:
+    description: Comma-separated keys of the components under maintenance. Empty means none are marked.
+    required: false
+    default: ''
+  duration-minutes:
+    description: How long the window is announced for. It is completed as soon as the job ends.
+    required: false
+    default: '30'
+  description:
+    description: What changes and what customers may notice.
+    required: false
+    default: ''
+  notify-subscribers:
+    description: Notify status page subscribers when the window starts and ends.
+    required: false
+    default: 'false'
+  mute-alerts:
+    description: Mute alerts for the affected components while the window is open.
+    required: false
+    default: 'true'
+  complete-message:
+    description: Update posted when the window is completed.
+    required: false
+    default: ''
+  api-url:
+    description: API base URL (change it for self-hosted Upvane).
+    required: false
+    default: https://api.upvane.com/v1
+  fail-on-error:
+    description: Fail the job when Upvane cannot be reached. By default the deploy continues with a warning.
+    required: false
+    default: 'false'
+outputs:
+  maintenance-id:
+    description: Id of the maintenance window.
+  url:
+    description: Link to the window on the status page.
+runs:
+  using: node20
+  main: src/main.js
+  post: src/post.js
+  post-if: always()

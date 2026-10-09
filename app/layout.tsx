@@ -1,35 +1,31 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { AuthProvider } from '@/lib/auth/provider'
-import { StoreProviderWithToast } from '@/components/StoreProviderWithToast'
-import { ToastProvider } from '@/hooks/useToast'
-import { ToastContainer } from '@/components/ui/Toast'
-import '@/styles/globals.css'
+import type { Metadata, Viewport } from 'next'
+import { Archivo, JetBrains_Mono } from 'next/font/google'
+import { Providers } from '@/components/providers'
+import '@/styles/tokens.css'
+import '@/styles/base.css'
+import '@/styles/ui.css'
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-primary',
-  display: 'swap',
-})
+const archivo = Archivo({ subsets: ['latin'], axes: ['wdth'], variable: '--font-archivo', display: 'swap' })
+const jetbrains = JetBrains_Mono({ subsets: ['latin'], weight: ['400', '500'], variable: '--font-jetbrains', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Upvane — Status Pages That Build Trust',
-  description: 'Beautiful, real-time status pages for your services. Keep your users informed with a single URL. Set up in 30 seconds — no code required.',
-  keywords: ['status page', 'uptime monitoring', 'incident management', 'SaaS'],
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  title: { default: 'Upvane — Status pages and monitoring for on-call teams', template: '%s · Upvane' },
+  description:
+    'Multi-region monitoring that confirms before it pages, incident updates your customers can follow, and status pages you manage as code.',
+  applicationName: 'Upvane',
+}
+
+export const viewport: Viewport = {
+  themeColor: '#0C1222',
+  colorScheme: 'dark light',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable} data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning>
-        <AuthProvider>
-          <ToastProvider>
-            <StoreProviderWithToast>
-              {children}
-              <ToastContainer />
-            </StoreProviderWithToast>
-          </ToastProvider>
-        </AuthProvider>
+    <html lang="en" className={`${archivo.variable} ${jetbrains.variable}`} suppressHydrationWarning>
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

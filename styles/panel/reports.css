@@ -1,0 +1,37 @@
+/* Reports and the printable SLA report. */
+.rp-empty { padding: 18px; color: var(--muted); font-size: 13.5px; }
+.rp-slos { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 0; }
+.rp-slos { border-top: 1px solid var(--line); }
+.rp-slo { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+.rp-slo-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.rp-slo-head strong { font-size: 14px; }
+.rp-slo-numbers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.rp-slo-numbers > span { display: flex; flex-direction: column; gap: 2px; }
+.rp-slo-numbers strong { font-stretch: 80%; font-size: 22px; font-weight: 620; font-variant-numeric: tabular-nums; }
+
+.sla { display: flex; flex-direction: column; gap: 22px; max-width: 1100px; }
+.sla-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sla-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 22px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line2); }
+.sla-title { font-stretch: 78%; font-weight: 640; font-size: 40px; line-height: 1; letter-spacing: -0.015em; }
+.sla-verdict { display: flex; flex-direction: column; gap: 4px; text-align: right; }
+.sla-verdict strong { font-stretch: 78%; font-size: 44px; font-weight: 640; line-height: 1; font-variant-numeric: tabular-nums; }
+.sla-note { font-size: 13.5px; color: var(--t-deg); }
+.sla-section { display: flex; flex-direction: column; gap: 10px; }
+.sla-section h2 { font-size: 15px; font-weight: 650; }
+.sla-section .tbl-scroll { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel); }
+.sla-foot { font-size: 12px; color: var(--faint); line-height: 1.6; max-width: 90ch; }
+
+@media print {
+  @page { margin: 16mm; }
+  :root { --bg: #FFFFFF; --panel: #FFFFFF; --text: #111827; --text-strong: #000000; --muted: #374151; --faint: #6B7280; --line: #E5E7EB; --line2: #D1D5DB; }
+  body, .shell, .main { background: #FFFFFF !important; color: #111827 !important; }
+  .side, .no-print, .toasts, nextjs-portal { display: none !important; }
+  .main { padding: 0 !important; }
+  .card, .sla-section .tbl-scroll { box-shadow: none !important; border-color: #E5E7EB !important; background: #FFFFFF !important; }
+  .tbl-scroll { overflow: visible !important; }
+  .tbl { min-width: 0 !important; }
+  .tr { break-inside: avoid; }
+  .sla-section { break-inside: auto; }
+  a { color: inherit !important; text-decoration: none !important; }
+}
+.sla-section .rp-empty { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--panel); }

@@ -1,0 +1,4 @@
+# Test-only stand-in for pg_net. Never install in production.
+comment = 'Upvane test stub for pg_net'
+default_version = '0.0.1'
+relocatable = true

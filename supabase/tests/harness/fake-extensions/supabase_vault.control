@@ -1,0 +1,5 @@
+# Test-only stand-in for Supabase Vault. Never install in production.
+comment = 'Upvane test stub for supabase_vault'
+default_version = '0.0.1'
+relocatable = false
+schema = vault

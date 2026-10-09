@@ -1,47 +1,43 @@
-'use client'
+import Link from 'next/link'
+import type { ButtonHTMLAttributes, ComponentProps, ReactNode } from 'react'
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+export type ButtonVariant = 'primary' | 'ghost' | 'quiet' | 'danger' | 'danger-ghost'
 
-type ButtonVariant = 'primary' | 'ghost' | 'subtle' | 'danger' | 'icon' | 'pill'
-type ButtonSize = 'sm' | 'md' | 'lg'
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface CommonProps {
   variant?: ButtonVariant
-  size?: ButtonSize
-  loading?: boolean
-  children: ReactNode
+  size?: 'md' | 'sm'
+  icon?: ReactNode
+  /** Square icon-only button; pass an aria-label. */
+  iconOnly?: boolean
 }
 
-export function Button({
-  variant = 'ghost',
-  size = 'md',
-  loading = false,
-  disabled,
-  children,
-  className = '',
-  ...props
-}: ButtonProps) {
-  const classes = [
-    'btn',
-    `btn-${variant}`,
-    size !== 'md' ? `btn-${size}` : '',
-    className,
-  ].filter(Boolean).join(' ')
+function classes(variant: ButtonVariant, size: 'md' | 'sm', iconOnly: boolean | undefined, extra?: string): string {
+  return ['btn', `btn-${variant}`, size === 'sm' ? 'btn-sm' : '', iconOnly ? 'btn-icon' : '', extra ?? ''].filter(Boolean).join(' ')
+}
 
+export interface ButtonProps extends CommonProps, ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean
+}
+
+export function Button({ variant = 'ghost', size = 'md', icon, iconOnly, loading, className, children, type = 'button', disabled, ...props }: ButtonProps) {
   return (
-    <button
-      className={classes}
-      disabled={disabled || loading}
-      {...props}
-    >
-      {loading ? (
-        <>
-          <span className="spinner" aria-hidden="true" />
-          <span className="btn-loading-text">{children}</span>
-        </>
-      ) : (
-        children
-      )}
+    <button type={type} className={classes(variant, size, iconOnly, className)} disabled={disabled || loading} aria-busy={loading || undefined} {...props}>
+      {loading ? <span className="spinner" aria-hidden="true" /> : null}
+      {icon}
+      {children}
     </button>
+  )
+}
+
+export interface ButtonLinkProps extends CommonProps, Omit<ComponentProps<typeof Link>, 'className'> {
+  className?: string
+}
+
+export function ButtonLink({ variant = 'ghost', size = 'md', icon, iconOnly, className, children, ...props }: ButtonLinkProps) {
+  return (
+    <Link className={classes(variant, size, iconOnly, className)} {...props}>
+      {icon}
+      {children}
+    </Link>
   )
 }

@@ -1,0 +1,4 @@
+# Test-only stand-in for pg_cron. Never install in production.
+comment = 'Upvane test stub for pg_cron'
+default_version = '0.0.1'
+relocatable = true

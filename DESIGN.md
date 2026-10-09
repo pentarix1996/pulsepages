@@ -1,367 +1,230 @@
-# Design System Inspired by Linear
+# Sistema de diseño de Upvane
 
-## 1. Visual Theme & Atmosphere
+Upvane lo usan equipos de DevOps y SRE en el peor momento de su día: algo se ha caído y tienen que entenderlo, decidir y
+comunicarlo. El diseño sirve a ese momento. El panel es una **sala de control**: oscuro, denso, con los datos técnicos
+en monoespaciada y el color reservado al estado de los servicios. La status page pública es lo contrario: **clara,
+tranquila y legible por cualquiera**, con la marca del cliente y oscuro opcional. La landing cuenta una caída real de
+principio a fin.
 
-Linear's website is a masterclass in dark-mode-first product design — a near-black canvas (`#08090a`) where content emerges from darkness like starlight. The overall impression is one of extreme precision engineering: every element exists in a carefully calibrated hierarchy of luminance, from barely-visible borders (`rgba(255,255,255,0.05)`) to soft, luminous text (`#f7f8f8`). This is not a dark theme applied to a light design — it is darkness as the native medium, where information density is managed through subtle gradations of white opacity rather than color variation.
+La referencia visual está en el lienzo *Upvane redesign* (landing, panel —resumen, incidencia, monitor— y status page
+escritorio y móvil). Este documento es el contrato; el código vive en `styles/` y `components/ui/`.
 
-The typography system is built entirely on Inter Variable with OpenType features `"cv01"` and `"ss03"` enabled globally, giving the typeface a cleaner, more geometric character. Inter is used at a remarkable range of weights — from 300 (light body) through 510 (medium, Linear's signature weight) to 590 (semibold emphasis). The 510 weight is particularly distinctive: it sits between regular and medium, creating a subtle emphasis that doesn't shout. At display sizes (72px, 64px, 48px), Inter uses aggressive negative letter-spacing (-1.584px to -1.056px), creating compressed, authoritative headlines that feel engineered rather than designed. Berkeley Mono serves as the monospace companion for code and technical labels, with fallbacks to ui-monospace, SF Mono, and Menlo.
+---
 
-The color system is almost entirely achromatic — dark backgrounds with white/gray text — punctuated by a single brand accent: Linear's signature indigo-violet (`#5e6ad2` for backgrounds, `#7170ff` for interactive accents). This accent color is used sparingly and intentionally, appearing only on CTAs, active states, and brand elements. The border system uses ultra-thin, semi-transparent white borders (`rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`) that create structure without visual noise, like wireframes drawn in moonlight.
+## 1. Principios
 
-**Key Characteristics:**
-- Dark-mode-native: `#08090a` marketing background, `#0f1011` panel background, `#191a1b` elevated surfaces
-- Inter Variable with `"cv01", "ss03"` globally — geometric alternates for a cleaner aesthetic
-- Signature weight 510 (between regular and medium) for most UI text
-- Aggressive negative letter-spacing at display sizes (-1.584px at 72px, -1.056px at 48px)
-- Brand indigo-violet: `#5e6ad2` (bg) / `#7170ff` (accent) / `#828fff` (hover) — the only chromatic color in the system
-- Semi-transparent white borders throughout: `rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`
-- Button backgrounds at near-zero opacity: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)`
-- Multi-layered shadows with inset variants for depth on dark surfaces
-- Radix UI primitives as the component foundation (6 detected primitives)
-- Success green (`#27a644`, `#10b981`) used only for status indicators
+1. **El color es estado.** Verde, ámbar, naranja, rojo y azul significan operativo, degradado, caída parcial, caída
+   total y mantenimiento. No se usan como decoración. La marca (índigo) solo marca acciones primarias, foco y selección.
+2. **La forma también es estado.** El color nunca va solo: cada estado lleva texto (`Major outage`), icono o posición.
+3. **Datos técnicos en mono, personas en sans.** URLs, IDs, latencias, códigos HTTP, regiones y fragmentos de código
+   van en JetBrains Mono con cifras tabulares. Títulos, mensajes y botones en Archivo.
+4. **Un solo momento orquestado.** La única animación que corre sola es la historia de la caída en el hero de la
+   landing. En el resto, el movimiento responde a datos (llega un check, cambia un estado) o a una acción (abrir,
+   publicar, confirmar). Todo respeta `prefers-reduced-motion`.
+5. **Densidad con jerarquía.** Mucha información por pantalla, pero una sola cosa grande: el estado actual o la
+   incidencia abierta. Lo demás se lee en filas, no en tarjetas idénticas.
+6. **Nada de diálogos del navegador.** Confirmaciones con `ConfirmDialog`, errores en línea y avisos con `Toast`.
 
-## 2. Color Palette & Roles
+---
 
-### Background Surfaces
-- **Marketing Black** (`#010102` / `#08090a`): The deepest background — the canvas for hero sections and marketing pages. Near-pure black with an imperceptible blue-cool undertone.
-- **Panel Dark** (`#0f1011`): Sidebar and panel backgrounds. One step up from the marketing black.
-- **Level 3 Surface** (`#191a1b`): Elevated surface areas, card backgrounds, dropdowns.
-- **Secondary Surface** (`#28282c`): The lightest dark surface — used for hover states and slightly elevated components.
+## 2. Color
 
-### Text & Content
-- **Primary Text** (`#f7f8f8`): Near-white with a barely-warm cast. The default text color — not pure white, preventing eye strain on dark backgrounds.
-- **Secondary Text** (`#d0d6e0`): Cool silver-gray for body text, descriptions, and secondary content.
-- **Tertiary Text** (`#8a8f98`): Muted gray for placeholders, metadata, and de-emphasized content.
-- **Quaternary Text** (`#62666d`): The most subdued text — timestamps, disabled states, subtle labels.
+### Panel y landing (tema tinta, oscuro)
 
-### Brand & Accent
-- **Brand Indigo** (`#5e6ad2`): Primary brand color — used for CTA button backgrounds, brand marks, and key interactive surfaces.
-- **Accent Violet** (`#7170ff`): Brighter variant for interactive elements — links, active states, selected items.
-- **Accent Hover** (`#828fff`): Lighter, more saturated variant for hover states on accent elements.
-- **Security Lavender** (`#7a7fad`): Muted indigo used specifically for security-related UI elements.
+| Token | Valor | Uso |
+|---|---|---|
+| `--bg` | `#0C1222` | Fondo de página |
+| `--side` | `#0E1528` | Barra lateral |
+| `--panel` | `#111A2E` | Tarjetas, tablas, paneles |
+| `--raised` | `#17223A` | Menús, popovers, segmento activo, toasts |
+| `--sunken` | `rgba(10,15,28,.6)` | Campos de formulario, bloques de código |
+| `--line` | `rgba(148,170,210,.13)` | Separadores y bordes por defecto |
+| `--line2` | `rgba(148,170,210,.24)` | Bordes de controles, bordes en hover |
+| `--text` | `#E9EEF8` | Texto principal |
+| `--muted` | `#A3AEC5` | Texto secundario |
+| `--faint` | `#7D89A3` | Metadatos, placeholders (cumple 4.5:1 sobre `--panel`) |
+| `--brand` | `#5B58E8` | Botón primario, interruptores activos |
+| `--accent` | `#A9A6FF` | Foco, pestaña activa, enlaces sobre oscuro (`#B9B7FF` en hover de enlaces) |
 
-### Status Colors
-- **Green** (`#27a644`): Primary success/active status. Used for "in progress" indicators.
-- **Emerald** (`#10b981`): Secondary success — pill badges, completion states.
+### Estados (panel)
 
-### Border & Divider
-- **Border Primary** (`#23252a`): Solid dark border for prominent separations.
-- **Border Secondary** (`#34343a`): Slightly lighter solid border.
-- **Border Tertiary** (`#3e3e44`): Lightest solid border variant.
-- **Border Subtle** (`rgba(255,255,255,0.05)`): Ultra-subtle semi-transparent border — the default.
-- **Border Standard** (`rgba(255,255,255,0.08)`): Standard semi-transparent border for cards, inputs, code blocks.
-- **Line Tint** (`#141516`): Nearly invisible line for the subtlest divisions.
-- **Line Tertiary** (`#18191a`): Slightly more visible divider line.
+| Estado | Token | Valor | Texto sobre oscuro |
+|---|---|---|---|
+| Operational | `--up` | `#34D39A` | `#34D39A` |
+| Degraded | `--deg` | `#F4B740` | `#F4B740` |
+| Partial outage | `--part` | `#F28A3E` | `#F28A3E` |
+| Major outage | `--major` | `#F0525D` | `#FF7A83` (más claro para contraste en texto) |
+| Maintenance | `--maint` | `#5E9BFF` | `#5E9BFF` |
+| Sin datos | `--none` | `#26324C` | — |
 
-### Light Mode Neutrals (for light theme contexts)
-- **Light Background** (`#f7f8f8`): Page background in light mode.
-- **Light Surface** (`#f3f4f5` / `#f5f6f7`): Subtle surface tinting.
-- **Light Border** (`#d0d6e0`): Visible border in light contexts.
-- **Light Border Alt** (`#e6e6e6`): Alternative lighter border.
-- **Pure White** (`#ffffff`): Card surfaces, highlights.
+Fondos tintados: el color al 8–16 % (`rgba(240,82,93,.14)`) con borde al 35–45 %. El banner de incidencia activa usa un
+degradado horizontal del 14 % al 5 %; es el único degradado del panel.
 
-### Overlay
-- **Overlay Primary** (`rgba(0,0,0,0.85)`): Modal/dialog backdrop — extremely dark for focus isolation.
+### Status page (tema claro por defecto, oscuro opcional)
 
-## 3. Typography Rules
+| Token | Claro | Oscuro |
+|---|---|---|
+| `--bg` | `#F5F6F8` | `#0D1320` |
+| `--surface` | `#FFFFFF` | `#131B2C` |
+| `--line` / `--line2` | `#E3E6EC` / `#D3D8E1` | `rgba(148,170,210,.14)` / `.26` |
+| `--text` / `--muted` / `--faint` | `#121826` / `#4F5A70` / `#677287` | `#E8EDF6` / `#A9B3C7` / `#8A96AD` |
+| Barras up/deg/part/major/maint | `#14A06A` `#E0A21B` `#E8742A` `#DC3545` `#3B72E0` | `#34D39A` `#F4B740` `#F28A3E` `#FF6B76` `#6EA6FF` |
+| Texto de estado | `#0F7E52` `#8F5E00` `#A84A0C` `#BC2534` `#2A5BC0` | `#4FE0A8` `#F7C766` `#F6A266` `#FF8B94` `#8DB8FF` |
+| `--accent` | color de marca del proyecto (`brand_color`, por defecto `#0E7490`) | igual, con enlaces `#7CD3E6` si no hay marca |
 
-### Font Family
-- **Primary**: `Inter Variable`, with fallbacks: `SF Pro Display, -apple-system, system-ui, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Open Sans, Helvetica Neue`
-- **Monospace**: `Berkeley Mono`, with fallbacks: `ui-monospace, SF Mono, Menlo`
-- **OpenType Features**: `"cv01", "ss03"` enabled globally — cv01 provides an alternate lowercase 'a' (single-story), ss03 adjusts specific letterforms for a cleaner geometric appearance.
+El tema por defecto lo elige el proyecto (`theme_default`: light, dark o system) y el visitante puede cambiarlo; la
+elección se guarda en `localStorage` por página.
 
-### Hierarchy
+---
 
-| Role | Font | Size | Weight | Line Height | Letter Spacing | Notes |
-|------|------|------|--------|-------------|----------------|-------|
-| Display XL | Inter Variable | 72px (4.50rem) | 510 | 1.00 (tight) | -1.584px | Hero headlines, maximum impact |
-| Display Large | Inter Variable | 64px (4.00rem) | 510 | 1.00 (tight) | -1.408px | Secondary hero text |
-| Display | Inter Variable | 48px (3.00rem) | 510 | 1.00 (tight) | -1.056px | Section headlines |
-| Heading 1 | Inter Variable | 32px (2.00rem) | 400 | 1.13 (tight) | -0.704px | Major section titles |
-| Heading 2 | Inter Variable | 24px (1.50rem) | 400 | 1.33 | -0.288px | Sub-section headings |
-| Heading 3 | Inter Variable | 20px (1.25rem) | 590 | 1.33 | -0.24px | Feature titles, card headers |
-| Body Large | Inter Variable | 18px (1.13rem) | 400 | 1.60 (relaxed) | -0.165px | Introduction text, feature descriptions |
-| Body Emphasis | Inter Variable | 17px (1.06rem) | 590 | 1.60 (relaxed) | normal | Emphasized body, sub-headings in content |
-| Body | Inter Variable | 16px (1.00rem) | 400 | 1.50 | normal | Standard reading text |
-| Body Medium | Inter Variable | 16px (1.00rem) | 510 | 1.50 | normal | Navigation, labels |
-| Body Semibold | Inter Variable | 16px (1.00rem) | 590 | 1.50 | normal | Strong emphasis |
-| Small | Inter Variable | 15px (0.94rem) | 400 | 1.60 (relaxed) | -0.165px | Secondary body text |
-| Small Medium | Inter Variable | 15px (0.94rem) | 510 | 1.60 (relaxed) | -0.165px | Emphasized small text |
-| Small Semibold | Inter Variable | 15px (0.94rem) | 590 | 1.60 (relaxed) | -0.165px | Strong small text |
-| Small Light | Inter Variable | 15px (0.94rem) | 300 | 1.47 | -0.165px | De-emphasized body |
-| Caption Large | Inter Variable | 14px (0.88rem) | 510–590 | 1.50 | -0.182px | Sub-labels, category headers |
-| Caption | Inter Variable | 13px (0.81rem) | 400–510 | 1.50 | -0.13px | Metadata, timestamps |
-| Label | Inter Variable | 12px (0.75rem) | 400–590 | 1.40 | normal | Button text, small labels |
-| Micro | Inter Variable | 11px (0.69rem) | 510 | 1.40 | normal | Tiny labels |
-| Tiny | Inter Variable | 10px (0.63rem) | 400–510 | 1.50 | -0.15px | Overline text, sometimes uppercase |
-| Link Large | Inter Variable | 16px (1.00rem) | 400 | 1.50 | normal | Standard links |
-| Link Medium | Inter Variable | 15px (0.94rem) | 510 | 2.67 | normal | Spaced navigation links |
-| Link Small | Inter Variable | 14px (0.88rem) | 510 | 1.50 | normal | Compact links |
-| Link Caption | Inter Variable | 13px (0.81rem) | 400–510 | 1.50 | -0.13px | Footer, metadata links |
-| Mono Body | Berkeley Mono | 14px (0.88rem) | 400 | 1.50 | normal | Code blocks |
-| Mono Caption | Berkeley Mono | 13px (0.81rem) | 400 | 1.50 | normal | Code labels |
-| Mono Label | Berkeley Mono | 12px (0.75rem) | 400 | 1.40 | normal | Code metadata, sometimes uppercase |
+## 3. Tipografía
 
-### Principles
-- **510 is the signature weight**: Linear uses Inter Variable's 510 weight (between regular 400 and medium 500) as its default emphasis weight. This creates a subtly bolded feel without the heaviness of traditional medium or semibold.
-- **Compression at scale**: Display sizes use progressively tighter letter-spacing — -1.584px at 72px, -1.408px at 64px, -1.056px at 48px, -0.704px at 32px. Below 24px, spacing relaxes toward normal.
-- **OpenType as identity**: `"cv01", "ss03"` aren't decorative — they transform Inter into Linear's distinctive typeface, giving it a more geometric, purposeful character.
-- **Three-tier weight system**: 400 (reading), 510 (emphasis/UI), 590 (strong emphasis). The 300 weight appears only in deliberately de-emphasized contexts.
+- **Archivo** (variable, ejes `wght` 100–900 y `wdth` 62–125) para todo el texto. Cargada con `next/font/google`
+  (`axes: ['wdth']`), variable CSS `--font-sans`.
+- **JetBrains Mono** 400/500 solo para datos técnicos (`.mono`), variable `--font-mono`, sin ligaduras.
+- Cifras: `font-variant-numeric: tabular-nums` (`.num`) en tablas, KPIs, latencias y horas.
 
-## 4. Component Stylings
+| Rol | Tamaño / alto de línea | Peso | Anchura (`font-stretch`) | Tracking |
+|---|---|---|---|---|
+| Display (hero landing) | `clamp(52px, 8vw, 104px)` / .9 | 640 | 72 % | −0.022em |
+| H1 de página del panel | 36 / 1 | 640 | 78 % | −0.015em |
+| H2 de sección (landing) | `clamp(34px, 4.2vw, 52px)` / 1.02 | 630 | 80 % | −0.016em |
+| KPI | 34 / 1 | 620 | 78 % | −0.01em |
+| Título de tarjeta | 15 / 1.3 | 650 | 100 % | 0 |
+| Cuerpo panel | 14 / 1.5 | 400–550 | 100 % | 0 |
+| Cuerpo landing / status page | 16 / 1.55 y 15 / 1.55 | 400 | 100 % | 0 |
+| Metadatos | 12.5 / 1.4 | 500 | 100 % | 0 |
 
-### Buttons
+Reglas: frases en *sentence case*; nada de etiquetas en mayúsculas con tracking; no se resalta una sola palabra del
+titular con otro color o cursiva; líneas de texto por debajo de ~75 caracteres (`max-width: 56ch` en entradillas).
 
-**Ghost Button (Default)**
-- Background: `rgba(255,255,255,0.02)`
-- Text: `#e2e4e7` (near-white)
-- Padding: comfortable
-- Radius: 6px
-- Border: `1px solid rgb(36, 40, 44)`
-- Outline: none
-- Focus shadow: `rgba(0,0,0,0.1) 0px 4px 12px`
-- Use: Standard actions, secondary CTAs
+---
 
-**Subtle Button**
-- Background: `rgba(255,255,255,0.04)`
-- Text: `#d0d6e0` (silver-gray)
-- Padding: 0px 6px
-- Radius: 6px
-- Use: Toolbar actions, contextual buttons
+## 4. Espacio, forma y profundidad
 
-**Primary Brand Button (Inferred)**
-- Background: `#5e6ad2` (brand indigo)
-- Text: `#ffffff`
-- Padding: 8px 16px
-- Radius: 6px
-- Hover: `#828fff` shift
-- Use: Primary CTAs ("Start building", "Sign up")
+- Escala de espacio (px): 4, 6, 8, 10, 12, 14, 16, 18, 22, 28, 32, 48, 64, 96. El panel usa 22 px entre bloques y
+  18–20 px de padding interno; la landing 96 px entre secciones.
+- Radios con jerarquía: 6 px etiquetas y códigos HTTP · 8–10 px botones, campos y filas de navegación · 14 px tarjetas
+  del panel · 16–18 px tableros y tarjetas de la landing/status page · 999 px chips y segmentos.
+- Profundidad por superficie, no por sombra: `--bg` → `--panel` → `--raised`. Solo llevan sombra los elementos que
+  flotan (menús, popovers, toasts, diálogos): `0 18px 40px rgba(0,0,0,.35)` en oscuro, `0 24px 60px rgba(10,15,30,.2)`
+  en claro.
+- Objetivos táctiles de 44 px como mínimo (40 px en controles compactos del panel con escritorio como destino).
 
-**Icon Button (Circle)**
-- Background: `rgba(255,255,255,0.03)` or `rgba(255,255,255,0.05)`
-- Text: `#f7f8f8` or `#ffffff`
-- Radius: 50%
-- Border: `1px solid rgba(255,255,255,0.08)`
-- Use: Close, menu toggle, icon-only actions
+### Rejillas
 
-**Pill Button**
-- Background: transparent
-- Text: `#d0d6e0`
-- Padding: 0px 10px 0px 5px
-- Radius: 9999px
-- Border: `1px solid rgb(35, 37, 42)`
-- Use: Filter chips, tags, status indicators
+- **Panel:** barra lateral de 248 px + contenido fluido (`padding: 28px 32px 48px`). Bajo 860 px la barra se convierte
+  en cabecera con navegación horizontal desplazable.
+- **Status page:** columna centrada de 880 px con 20 px de margen lateral.
+- **Landing:** contenedor de 1200 px con 32 px de margen (16 px en móvil); el hero ocupa todo el ancho del contenedor.
 
-**Small Toolbar Button**
-- Background: `rgba(255,255,255,0.05)`
-- Text: `#62666d` (muted)
-- Radius: 2px
-- Border: `1px solid rgba(255,255,255,0.05)`
-- Shadow: `rgba(0,0,0,0.03) 0px 1.2px 0px 0px`
-- Font: 12px weight 510
-- Use: Toolbar actions, quick-access controls
+---
 
-### Cards & Containers
-- Background: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)` (never solid — always translucent)
-- Border: `1px solid rgba(255,255,255,0.08)` (standard) or `1px solid rgba(255,255,255,0.05)` (subtle)
-- Radius: 8px (standard), 12px (featured), 22px (large panels)
-- Shadow: `rgba(0,0,0,0.2) 0px 0px 0px 1px` or layered multi-shadow stacks
-- Hover: subtle background opacity increase
+## 5. Movimiento
 
-### Inputs & Forms
+| Tipo | Ejemplo | Duración / curva |
+|---|---|---|
+| Orquestado (único) | Historia de la caída en el hero: checks que llegan, confirmación en 3 regiones, alerta, borrador de incidencia, status page que cambia de verde a rojo y vuelve. Pasos clicables y pausa al pasar por encima | Pasos de 2.6 s; transiciones de .45–.6 s `cubic-bezier(.2,.7,.2,1)` |
+| Llegada de datos | Fila nueva en "Live checks" o en el timeline: entra desde −8 px con un destello del acento al 12 % | .55 s |
+| Cambio de estado | Barras y textos de estado cruzan color | .5–.6 s ease |
+| Pulso | Punto verde "en vivo"; punto rojo de incidencia activa | 2 s y 1.6 s, infinito |
+| Acción | Abrir popover (escala .98 → 1), desplegar grupo (grid-rows 0fr → 1fr), toast (−8 px) | .25–.4 s |
 
-**Text Area**
-- Background: `rgba(255,255,255,0.02)`
-- Text: `#d0d6e0`
-- Border: `1px solid rgba(255,255,255,0.08)`
-- Padding: 12px 14px
-- Radius: 6px
+Prohibido: aparición en cascada de cada sección al hacer scroll, hover que mueve tarjetas, parallax. Con
+`prefers-reduced-motion: reduce` se anulan animaciones y transiciones (`styles/base.css`).
 
-**Search Input**
-- Background: transparent
-- Text: `#f7f8f8`
-- Padding: 1px 32px (icon-aware)
+---
 
-**Button-style Input**
-- Text: `#8a8f98`
-- Padding: 1px 6px
-- Radius: 5px
-- Focus shadow: multi-layer stack
+## 6. Componentes (`components/ui/`)
 
-### Badges & Pills
+| Componente | Notas |
+|---|---|
+| `Button` / `ButtonLink` | Variantes `primary` (marca), `ghost` (borde `--line2`), `danger` (rojo, solo acciones destructivas), `quiet` (sin borde). Tamaños `md` 40 px y `sm` 32 px. Estado `loading` con spinner y texto que no cambia de ancho. Hover: `filter: brightness(1.14)` o borde más claro; nunca desplazamiento |
+| `Field` | Etiqueta arriba (13.5 px, 550), pista debajo en `--faint`, error en `#FF8189` con `aria-describedby` |
+| `Input`, `Textarea`, `Select` | Fondo `--sunken`, borde `--line2`, radio 10 px, 40 px de alto. `Select` es nativo con chevron propio |
+| `Switch` | Pista de 30×18, activo en `--brand`; siempre con texto visible |
+| `Segmented` | Píldora con `--raised` en la opción activa; para filtros y vistas (`aria-pressed`) |
+| `Chip` | Píldora con borde `--line2`; tonos `danger`, `warning`, `success`, `info` para impacto y visibilidad |
+| `StatusDot`, `StatusPill` | Punto + etiqueta del estado; `pulse` para "en vivo" o incidencia abierta |
+| `UptimeBars` | 1 barra por día (30–90). Tooltip con fecha, minutos por estado e incidencias; `role="img"` con resumen accesible |
+| `Sparkline`, `LatencyChart` | SVG propio; latencia p50/p95 por región con umbral discontinuo |
+| `Card`, `CardHeader` | Superficie `--panel`, radio 14 px, cabecera con título 15/650 y acciones a la derecha |
+| `Kpi` | Etiqueta, cifra (34 px, 78 % de anchura) y nota; separadas por bordes, no por tarjetas |
+| `Table` (`.tbl`) | Rejilla CSS por filas (`role="table"`), cabecera 12.5 px `--faint`, filas de 11 px de padding, hover `rgba(148,170,210,.04)` |
+| `Timeline` | Eventos con hora mono, punto por tipo (público `--accent`, interno ámbar, sistema `--faint`) y etiqueta |
+| `Dialog`, `ConfirmDialog` | `<dialog>` nativo con foco atrapado; la acción destructiva repite el verbo ("Delete monitor") |
+| `Toast` | Arriba a la derecha, `--raised`, borde del color del resultado; se cierra solo a los 5 s |
+| `CommandPalette` | ⌘K / Ctrl K: navegar, cambiar de proyecto, declarar incidencia, programar mantenimiento, crear monitor |
+| `CodeBlock`, `CopyButton` | Mono 13.5/1.75, números de línea, botón copiar con confirmación "Copied" |
+| `EmptyState` | Una frase de qué falta y la acción para crearlo; sin ilustraciones |
+| `RelativeTime` | "3 min ago" con `<time dateTime>` y título con la fecha absoluta en la zona del usuario |
 
-**Success Pill**
-- Background: `#10b981`
-- Text: `#f7f8f8`
-- Radius: 50% (circular)
-- Font: 10px weight 510
-- Use: Status dots, completion indicators
+Iconos: trazos de 2 px, 16 px en navegación y 14 px en línea (`components/ui/icons.tsx`), sin librería externa.
 
-**Neutral Pill**
-- Background: transparent
-- Text: `#d0d6e0`
-- Padding: 0px 10px 0px 5px
-- Radius: 9999px
-- Border: `1px solid rgb(35, 37, 42)`
-- Font: 12px weight 510
-- Use: Tags, filter chips, category labels
+---
 
-**Subtle Badge**
-- Background: `rgba(255,255,255,0.05)`
-- Text: `#f7f8f8`
-- Padding: 0px 8px 0px 2px
-- Radius: 2px
-- Border: `1px solid rgba(255,255,255,0.05)`
-- Font: 10px weight 510
-- Use: Inline labels, version tags
+## 7. Patrones de página
 
-### Navigation
-- Dark sticky header on near-black background
-- Linear logomark left-aligned (SVG icon)
-- Links: Inter Variable 13–14px weight 510, `#d0d6e0` text
-- Active/hover: text lightens to `#f7f8f8`
-- CTA: Brand indigo button or ghost button
-- Mobile: hamburger collapse
-- Search: command palette trigger (`/` or `Cmd+K`)
+### Panel (`app/(panel)`)
+- **Barra lateral:** logo, selector de organización/proyecto con su entorno, buscador ⌘K, navegación del proyecto
+  (Overview, Incidents con contador, Monitors con fallos, Maintenance, Components, Alerts, Integrations, Status page,
+  Reports) y pie con usuario y plan.
+- **Cabecera de página:** H1 + una línea de contexto ("Live. Checks arrive every 30 seconds.") a la izquierda y las dos
+  acciones principales a la derecha (secundaria `ghost`, principal `primary`).
+- **Overview:** banner de incidencia activa (si la hay), franja de KPIs (uptime con presupuesto de error, incidencias
+  abiertas, MTTR, monitores en verde, p95), tabla de componentes con barras de 90 días y columna de "Live checks".
+- **Incidencia:** compositor arriba (etapas investigating → identified → monitoring → resolved, estado por componente,
+  público/interno, notificar suscriptores) y timeline debajo; columna lateral con detalles, tiempos (detectada,
+  reconocida, resuelta, MTTA/MTTR) y postmortem.
+- **Monitor:** gráfica de latencia por región, losetas por región con su estado confirmado, configuración, enrutado de
+  alertas y últimos checks.
+- Listas: filtros en la URL (`searchParams`), nunca compartidos entre vistas.
 
-### Image Treatment
-- Product screenshots on dark backgrounds with subtle border (`rgba(255,255,255,0.08)`)
-- Top-rounded images: `12px 12px 0px 0px` radius
-- Dashboard/issue previews dominate feature sections
-- Subtle shadow beneath screenshots: `rgba(0,0,0,0.4) 0px 2px 4px`
+### Status page (`app/status`)
+- Cabecera con logo o nombre, suscribirse (popover: email, Slack, webhook, RSS/Atom) y cambio de tema.
+- Bloque de estado general tintado del peor estado; incidencias activas con su última actualización; mantenimientos
+  programados; grupos de componentes plegables con barras de 90 días y tooltip; historial de incidencias por día;
+  selector de zona horaria (por defecto la del visitante). Pie con "Powered by Upvane" salvo en planes que lo ocultan.
+- Permalinks para incidencias y mantenimientos, página de historial paginada, feeds RSS/Atom y JSON.
 
-## 5. Layout Principles
+### Landing (`app/page.tsx`)
+- Hero con "Outages happen. Silence is optional." y el tablero animado de la caída; secciones de monitorización,
+  incidencias, status page, integraciones como código (pestañas Terraform, CLI, GitHub Action, curl), precios
+  (Free, Pro 9/7 $, Business 29/24 $) y FAQ. Solo se promete lo que existe (B-11).
 
-### Spacing System
-- Base unit: 8px
-- Scale: 1px, 4px, 7px, 8px, 11px, 12px, 16px, 19px, 20px, 22px, 24px, 28px, 32px, 35px
-- The 7px and 11px values suggest micro-adjustments for optical alignment
-- Primary rhythm: 8px, 16px, 24px, 32px (standard 8px grid)
+---
 
-### Grid & Container
-- Max content width: approximately 1200px
-- Hero: centered single-column with generous vertical padding
-- Feature sections: 2–3 column grids for feature cards
-- Full-width dark sections with internal max-width constraints
-- Changelog: single-column timeline layout
+## 8. Texto
 
-### Whitespace Philosophy
-- **Darkness as space**: On Linear's dark canvas, empty space isn't white — it's absence. The near-black background IS the whitespace, and content emerges from it.
-- **Compressed headlines, expanded surroundings**: Display text at 72px with -1.584px tracking is dense and compressed, but sits within vast dark padding. The contrast between typographic density and spatial generosity creates tension.
-- **Section isolation**: Each feature section is separated by generous vertical padding (80px+) with no visible dividers — the dark background provides natural separation.
+- UI en inglés, frases cortas, voz activa y verbos concretos: "Declare incident", "Post update", "Pin status",
+  "Return to automatic". Un botón y su toast usan el mismo verbo ("Publish" → "Published").
+- Los errores dicen qué pasó y cómo seguir ("Your Free plan checks every 180 seconds at most. Upgrade to check more
+  often."); no piden perdón ni son vagos.
+- Los estados vacíos invitan a actuar ("No monitors yet. Add one to start checking from 15 regions.").
+- Nombres desde el punto de vista de quien usa el producto: "Alert routing", no "alert_rules".
 
-### Border Radius Scale
-- Micro (2px): Inline badges, toolbar buttons, subtle tags
-- Standard (4px): Small containers, list items
-- Comfortable (6px): Buttons, inputs, functional elements
-- Card (8px): Cards, dropdowns, popovers
-- Panel (12px): Panels, featured cards, section containers
-- Large (22px): Large panel elements
-- Full Pill (9999px): Chips, filter pills, status tags
-- Circle (50%): Icon buttons, avatars, status dots
+---
 
-## 6. Depth & Elevation
+## 9. Accesibilidad
 
-| Level | Treatment | Use |
-|-------|-----------|-----|
-| Flat (Level 0) | No shadow, `#010102` bg | Page background, deepest canvas |
-| Subtle (Level 1) | `rgba(0,0,0,0.03) 0px 1.2px 0px` | Toolbar buttons, micro-elevation |
-| Surface (Level 2) | `rgba(255,255,255,0.05)` bg + `1px solid rgba(255,255,255,0.08)` border | Cards, input fields, containers |
-| Inset (Level 2b) | `rgba(0,0,0,0.2) 0px 0px 12px 0px inset` | Recessed panels, inner shadows |
-| Ring (Level 3) | `rgba(0,0,0,0.2) 0px 0px 0px 1px` | Border-as-shadow technique |
-| Elevated (Level 4) | `rgba(0,0,0,0.4) 0px 2px 4px` | Floating elements, dropdowns |
-| Dialog (Level 5) | Multi-layer stack: `rgba(0,0,0,0) 0px 8px 2px, rgba(0,0,0,0.01) 0px 5px 2px, rgba(0,0,0,0.04) 0px 3px 2px, rgba(0,0,0,0.07) 0px 1px 1px, rgba(0,0,0,0.08) 0px 0px 1px` | Popovers, command palette, modals |
-| Focus | `rgba(0,0,0,0.1) 0px 4px 12px` + additional layers | Keyboard focus on interactive elements |
+- Contraste AA en todo el texto (los tokens `--faint` y de estado están calibrados para ello sobre su superficie).
+- Foco visible: contorno de 2 px `--accent` con 2–3 px de separación en todos los controles.
+- Navegación completa con teclado: ⌘K, `Esc` cierra diálogos y popovers, flechas en segmentos y paleta.
+- Las barras de uptime y gráficas exponen un resumen textual (`aria-label`) y tablas equivalentes en Reports.
+- Cambios en vivo (checks, incidencias) se anuncian con `aria-live="polite"` sin robar el foco.
 
-**Shadow Philosophy**: On dark surfaces, traditional shadows (dark on dark) are nearly invisible. Linear solves this by using semi-transparent white borders as the primary depth indicator. Elevation isn't communicated through shadow darkness but through background luminance steps — each level slightly increases the white opacity of the surface background (`0.02` → `0.04` → `0.05`), creating a subtle stacking effect. The inset shadow technique (`rgba(0,0,0,0.2) 0px 0px 12px 0px inset`) creates a unique "sunken" effect for recessed panels, adding dimensional depth that traditional dark themes lack.
+---
 
-## 7. Do's and Don'ts
+## 10. Implementación
 
-### Do
-- Use Inter Variable with `"cv01", "ss03"` on ALL text — these features are fundamental to Linear's typeface identity
-- Use weight 510 as your default emphasis weight — it's Linear's signature between-weight
-- Apply aggressive negative letter-spacing at display sizes (-1.584px at 72px, -1.056px at 48px)
-- Build on near-black backgrounds: `#08090a` for marketing, `#0f1011` for panels, `#191a1b` for elevated surfaces
-- Use semi-transparent white borders (`rgba(255,255,255,0.05)` to `rgba(255,255,255,0.08)`) instead of solid dark borders
-- Keep button backgrounds nearly transparent: `rgba(255,255,255,0.02)` to `rgba(255,255,255,0.05)`
-- Reserve brand indigo (`#5e6ad2` / `#7170ff`) for primary CTAs and interactive accents only
-- Use `#f7f8f8` for primary text — not pure `#ffffff`, which would be too harsh
-- Apply the luminance stacking model: deeper = darker bg, elevated = slightly lighter bg
+| Archivo | Contenido |
+|---|---|
+| `styles/tokens.css` | Variables de color, tipografía, radios y sombras (`:root` = tinta; `.sp` y `.sp.dark` = status page) |
+| `styles/base.css` | Reset, tipografía base, foco, utilidades (`.mono`, `.num`, `.sr-only`), movimiento reducido |
+| `styles/ui.css` | Estilos del kit de `components/ui` |
+| `styles/panel.css` | Shell del panel y patrones de página |
+| `styles/status.css` | Status page pública (claro/oscuro) |
+| `styles/landing.css` | Landing |
 
-### Don't
-- Don't use pure white (`#ffffff`) as primary text — `#f7f8f8` prevents eye strain
-- Don't use solid colored backgrounds for buttons — transparency is the system (rgba white at 0.02–0.05)
-- Don't apply the brand indigo decoratively — it's reserved for interactive/CTA elements only
-- Don't use positive letter-spacing on display text — Inter at large sizes always runs negative
-- Don't use visible/opaque borders on dark backgrounds — borders should be whisper-thin semi-transparent white
-- Don't skip the OpenType features (`"cv01", "ss03"`) — without them, it's generic Inter, not Linear's Inter
-- Don't use weight 700 (bold) — Linear's maximum weight is 590, with 510 as the workhorse
-- Don't introduce warm colors into the UI chrome — the palette is cool gray with blue-violet accent only
-- Don't use drop shadows for elevation on dark surfaces — use background luminance stepping instead
-
-## 8. Responsive Behavior
-
-### Breakpoints
-| Name | Width | Key Changes |
-|------|-------|-------------|
-| Mobile Small | <600px | Single column, compact padding |
-| Mobile | 600–640px | Standard mobile layout |
-| Tablet | 640–768px | Two-column grids begin |
-| Desktop Small | 768–1024px | Full card grids, expanded padding |
-| Desktop | 1024–1280px | Standard desktop, full navigation |
-| Large Desktop | >1280px | Full layout, generous margins |
-
-### Touch Targets
-- Buttons use comfortable padding with 6px radius minimum
-- Navigation links at 13–14px with adequate spacing
-- Pill tags have 10px horizontal padding for touch accessibility
-- Icon buttons at 50% radius ensure circular, easy-to-tap targets
-- Search trigger is prominently placed with generous hit area
-
-### Collapsing Strategy
-- Hero: 72px → 48px → 32px display text, tracking adjusts proportionally
-- Navigation: horizontal links + CTAs → hamburger menu at 768px
-- Feature cards: 3-column → 2-column → single column stacked
-- Product screenshots: maintain aspect ratio, may reduce padding
-- Changelog: timeline maintains single-column through all sizes
-- Footer: multi-column → stacked single column
-- Section spacing: 80px+ → 48px on mobile
-
-### Image Behavior
-- Dashboard screenshots maintain border treatment at all sizes
-- Hero visuals simplify on mobile (fewer floating UI elements)
-- Product screenshots use responsive sizing with consistent radius
-- Dark background ensures screenshots blend naturally at any viewport
-
-## 9. Agent Prompt Guide
-
-### Quick Color Reference
-- Primary CTA: Brand Indigo (`#5e6ad2`)
-- Page Background: Marketing Black (`#08090a`)
-- Panel Background: Panel Dark (`#0f1011`)
-- Surface: Level 3 (`#191a1b`)
-- Heading text: Primary White (`#f7f8f8`)
-- Body text: Silver Gray (`#d0d6e0`)
-- Muted text: Tertiary Gray (`#8a8f98`)
-- Subtle text: Quaternary Gray (`#62666d`)
-- Accent: Violet (`#7170ff`)
-- Accent Hover: Light Violet (`#828fff`)
-- Border (default): `rgba(255,255,255,0.08)`
-- Border (subtle): `rgba(255,255,255,0.05)`
-- Focus ring: Multi-layer shadow stack
-
-### Example Component Prompts
-- "Create a hero section on `#08090a` background. Headline at 48px Inter Variable weight 510, line-height 1.00, letter-spacing -1.056px, color `#f7f8f8`, font-feature-settings `'cv01', 'ss03'`. Subtitle at 18px weight 400, line-height 1.60, color `#8a8f98`. Brand CTA button (`#5e6ad2`, 6px radius, 8px 16px padding) and ghost button (`rgba(255,255,255,0.02)` bg, `1px solid rgba(255,255,255,0.08)` border, 6px radius)."
-- "Design a card on dark background: `rgba(255,255,255,0.02)` background, `1px solid rgba(255,255,255,0.08)` border, 8px radius. Title at 20px Inter Variable weight 590, letter-spacing -0.24px, color `#f7f8f8`. Body at 15px weight 400, color `#8a8f98`, letter-spacing -0.165px."
-- "Build a pill badge: transparent background, `#d0d6e0` text, 9999px radius, 0px 10px padding, `1px solid #23252a` border, 12px Inter Variable weight 510."
-- "Create navigation: dark sticky header on `#0f1011`. Inter Variable 13px weight 510 for links, `#d0d6e0` text. Brand indigo CTA `#5e6ad2` right-aligned with 6px radius. Bottom border: `1px solid rgba(255,255,255,0.05)`."
-- "Design a command palette: `#191a1b` background, `1px solid rgba(255,255,255,0.08)` border, 12px radius, multi-layer shadow stack. Input at 16px Inter Variable weight 400, `#f7f8f8` text. Results list with 13px weight 510 labels in `#d0d6e0` and 12px metadata in `#62666d`."
-
-### Iteration Guide
-1. Always set font-feature-settings `"cv01", "ss03"` on all Inter text — this is non-negotiable for Linear's look
-2. Letter-spacing scales with font size: -1.584px at 72px, -1.056px at 48px, -0.704px at 32px, normal below 16px
-3. Three weights: 400 (read), 510 (emphasize/navigate), 590 (announce)
-4. Surface elevation via background opacity: `rgba(255,255,255, 0.02 → 0.04 → 0.05)` — never solid backgrounds on dark
-5. Brand indigo (`#5e6ad2` / `#7170ff`) is the only chromatic color — everything else is grayscale
-6. Borders are always semi-transparent white, never solid dark colors on dark backgrounds
-7. Berkeley Mono for any code or technical content, Inter Variable for everything else
+Las fuentes se cargan en `app/layout.tsx` con `next/font/google` y se exponen como `--font-sans` y `--font-mono`.
+Las páginas nuevas reutilizan el kit; un estilo nuevo solo entra en `ui.css` si se usa en dos o más páginas.

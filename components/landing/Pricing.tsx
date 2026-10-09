@@ -1,94 +1,68 @@
-'use client'
+import { PLAN_INFO, PLANS } from '@shared/plans.ts'
+import { ButtonLink } from '@/components/ui/Button'
+import { CheckIcon } from '@/components/ui/icons'
+import { PricingSwitch } from './PricingSwitch'
+import { PLAN_CTA, maxYearlyDiscountPercent, planPrice, planSignupHref, type BillingPeriod } from './pricing'
 
-import { useState } from 'react'
-import Link from 'next/link'
-
-const plans = [
-  {
-    name: 'Free',
-    monthly: 0,
-    annual: 0,
-    description: 'Perfect for side projects and personal use.',
-    features: ['1 status page', '3 components per page', '7-day incident history', 'Community support'],
-    cta: 'Get started',
-    featured: false,
-  },
-  {
-    name: 'Pro',
-    monthly: 9,
-    annual: 7,
-    description: 'For growing teams and startups who need more.',
-    features: ['5 status pages', '10 components per page', '90-day incident history', 'Custom domain', 'API access', 'Email support'],
-    cta: 'Select Pro',
-    featured: true,
-  },
-  {
-    name: 'Business',
-    monthly: 29,
-    annual: 24,
-    description: 'For organizations that need maximum reliability.',
-    features: ['Unlimited status pages', 'Unlimited components', 'Unlimited incident history', 'Priority support'],
-    cta: 'Select Business',
-    featured: false,
-  },
-]
+const FEATURED = 'pro'
+const PERIODS: BillingPeriod[] = ['monthly', 'yearly']
 
 export function Pricing() {
-  const [annual, setAnnual] = useState(false)
-
+  const discount = maxYearlyDiscountPercent()
   return (
-    <section className="pricing" id="pricing">
-      <div className="pricing-header">
-        <h2 className="pricing-title">Simple, transparent pricing</h2>
-        <p className="pricing-subtitle">Start free, upgrade when you need to. No hidden fees.</p>
-        <div className="pricing-toggle" id="pricing-toggle">
-          <span className={`pricing-toggle-label ${!annual ? 'active' : ''}`}>Monthly</span>
-          <span
-            className={`pricing-toggle-switch ${annual ? 'active' : ''}`}
-            role="switch"
-            tabIndex={0}
-            aria-checked={annual}
-            onClick={() => setAnnual((prev) => !prev)}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setAnnual((prev) => !prev) }}
-          />
-          <span className={`pricing-toggle-label ${annual ? 'active' : ''}`}>
-            Annual <span className="pricing-save">Save 20%</span>
-          </span>
-        </div>
-      </div>
-      <div className="pricing-grid">
-        {plans.map((plan) => (
-          <div className={`pricing-card ${plan.featured ? 'pricing-card-featured' : ''}`} key={plan.name}>
-            {plan.featured ? <div className="pricing-card-popular">Most Popular</div> : null}
-            <div className="pricing-card-header">
-              <h3 className="pricing-card-name">{plan.name}</h3>
-              <div className="pricing-card-price">
-                <span className="pricing-card-amount">${annual ? plan.annual : plan.monthly}</span>
-                {plan.monthly > 0 ? <span className="pricing-card-period">/month</span> : null}
-              </div>
-              <p className="pricing-card-description">{plan.description}</p>
-            </div>
-            <ul className="pricing-card-features">
-              {plan.features.map((f) => (
-                <li className="pricing-feature" key={f}>
-                  <span className="pricing-feature-icon pricing-feature-icon-check">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/register"
-              className={`btn ${plan.featured ? 'btn-primary' : 'btn-ghost'} btn-block`}
-            >
-              {plan.cta}
-            </Link>
+    <section id="pricing" className="lp-wrap lp-section" aria-labelledby="pricing-title">
+      <PricingSwitch
+        yearlyHint={discount > 0 ? `save up to ${discount}%` : null}
+        heading={
+          <div className="lp-intro">
+            <h2 className="lp-h2" id="pricing-title">
+              Start free, pay when it&apos;s production
+            </h2>
+            <p className="lp-lede">
+              Every plan includes a status page, incidents, subscribers and alerts by email, Slack, Teams, Discord and webhook. Paid plans add faster checks from
+              more regions, the API and your own domain.
+            </p>
           </div>
-        ))}
-      </div>
+        }
+      >
+        <div className="lp-plans">
+          {PLANS.map((plan) => {
+            const info = PLAN_INFO[plan]
+            const featured = plan === FEATURED
+            return (
+              <article key={plan} className={featured ? 'lp-plan feat' : 'lp-plan'} aria-labelledby={`plan-${plan}`}>
+                <div className="lp-plan-h">
+                  <h3 id={`plan-${plan}`}>{info.name}</h3>
+                  <p>{info.summary}</p>
+                </div>
+                {PERIODS.map((period) => {
+                  const price = planPrice(plan, period)
+                  return (
+                    <div key={period} className="lp-price" data-for={period}>
+                      <p>
+                        <span className="lp-amount num">{price.amount}</span>
+                        <span className="lp-per">{price.per}</span>
+                      </p>
+                      <p className="lp-price-note">{price.note}</p>
+                    </div>
+                  )
+                })}
+                <ButtonLink variant={featured ? 'primary' : 'ghost'} href={planSignupHref(plan)}>
+                  {PLAN_CTA[plan]}
+                </ButtonLink>
+                <ul role="list" aria-label={`${info.name} includes`}>
+                  {info.highlights.map((highlight) => (
+                    <li key={highlight}>
+                      <CheckIcon size={16} strokeWidth={2.4} />
+                      <span>{highlight}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            )
+          })}
+        </div>
+      </PricingSwitch>
     </section>
   )
 }

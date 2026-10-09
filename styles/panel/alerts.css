@@ -1,0 +1,76 @@
+/* Alerts and routing — rules, channels, activity (DESIGN.md §7). */
+.al-type { width: 32px; height: 32px; border-radius: 9px; display: inline-grid; place-items: center; flex: none; background: var(--hover); color: var(--muted); }
+.al-type-email { background: rgba(94, 155, 255, 0.14); color: var(--t-maint); }
+.al-type-slack, .al-type-teams, .al-type-discord { background: var(--tint-accent); color: var(--accent); }
+.al-type-webhook { background: rgba(52, 211, 154, 0.12); color: var(--t-up); }
+.al-type-pagerduty, .al-type-opsgenie { background: var(--tint-major); color: var(--t-major); }
+
+.al-master { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; padding: 16px 18px; }
+.al-master p { color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+
+/* Rules: an ordered list that reads like sentences. */
+.al-rules { display: flex; flex-direction: column; }
+.al-rule { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 16px 18px; border-top: 1px solid var(--line); }
+.al-rule:first-child { border-top: 0; }
+.al-rule.off { opacity: 0.6; }
+.al-rule-n { font-family: var(--font-mono); font-size: 12px; color: var(--faint); width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line2); display: inline-grid; place-items: center; }
+.al-rule-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.al-rule-name { font-weight: 600; font-size: 14px; }
+.al-rule-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13.5px; color: #C9D3E6; }
+.al-rule-flow .arrow { color: var(--faint); }
+.al-rule-details { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--faint); }
+.al-rule-warn { font-size: 12.5px; color: var(--t-deg); }
+.al-rule-actions { display: flex; align-items: center; gap: 4px; }
+
+/* Channels */
+.al-channels { display: flex; flex-direction: column; }
+.al-channel { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 16px 18px; border-top: 1px solid var(--line); }
+.al-channel:first-child { border-top: 0; }
+.al-channel-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.al-channel-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.al-channel-head strong { font-size: 14px; }
+.al-channel-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12.5px; color: var(--faint); }
+.al-recipients { display: flex; flex-wrap: wrap; gap: 6px; }
+.al-recipient { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 4px 3px 10px; border-radius: var(--radius-pill); border: 1px solid var(--line2); color: var(--muted); }
+.al-recipient.ok { padding-right: 10px; }
+.al-recipient.pending { border-style: dashed; }
+.al-recipient button { border: 0; background: var(--hover); color: var(--text); font: 600 11.5px/1 var(--font-sans); border-radius: var(--radius-pill); padding: 4px 8px; }
+.al-recipient button:hover { background: var(--selected); }
+.al-delivery { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Channel dialog */
+.al-type-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 8px; }
+.al-type-btn { display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 12px; border: 1px solid var(--line2); border-radius: var(--radius-md); background: var(--panel); color: var(--text); font: inherit; }
+.al-type-btn:hover { border-color: var(--line3); }
+.al-type-btn[aria-pressed='true'] { border-color: var(--accent); background: var(--tint-accent); }
+.al-type-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.al-type-btn strong { display: block; font-size: 13.5px; }
+.al-type-btn span.help { display: block; margin-top: 2px; }
+.al-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+/* Rule dialog */
+.al-event-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 14px; }
+.al-event-group { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--sunken); }
+.al-event-group h4 { font-size: 12.5px; font-weight: 650; color: var(--muted); }
+.al-pick { display: flex; flex-direction: column; gap: 8px; max-height: 180px; overflow-y: auto; padding: 10px 12px; border: 1px solid var(--line2); border-radius: var(--radius-md); background: var(--sunken); }
+.al-preview { font-size: 13.5px; color: #C9D3E6; background: var(--sunken); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 12px 14px; line-height: 1.55; }
+
+/* Activity */
+.al-event { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 16px; padding: 14px 18px; border-top: 1px solid var(--line); }
+.al-event:first-child { border-top: 0; }
+.al-event-title { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.al-event-title strong { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.al-event-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12.5px; color: var(--faint); }
+.al-event-why { grid-column: 1 / -1; font-size: 12.5px; color: var(--muted); }
+.al-deliveries { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.al-ev-status { align-self: start; font-size: 11.5px; font-weight: 600; border-radius: var(--radius-xs); padding: 2px 7px; white-space: nowrap; }
+.al-ev-status.is-processed { color: var(--t-up); background: var(--tint-up); }
+.al-ev-status.is-pending { color: var(--t-maint); background: var(--tint-maint); }
+.al-ev-status.is-suppressed { color: var(--muted); background: var(--hover); }
+.al-ev-status.is-failed { color: var(--t-major); background: var(--tint-major); }
+
+@media (max-width: 860px) {
+  .al-rule, .al-channel { grid-template-columns: minmax(0, 1fr); }
+  .al-rule-n { display: none; }
+}
+.al-filters { display: flex; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }

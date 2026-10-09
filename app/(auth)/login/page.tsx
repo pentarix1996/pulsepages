@@ -1,92 +1,40 @@
-'use client'
-
-import { useState } from 'react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth/provider'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { ROLE_ARTICLE_LABEL } from '@/components/auth/copy'
+import { AuthShell } from '@/components/auth/AuthShell'
+import { LoginForm, type LoginMode } from '@/components/auth/LoginForm'
+import { firstParam, type SearchParams } from '@/components/auth/params'
+import { authQuery, isInviteToken } from '@/components/auth/safe-next'
+import { getInvitationPreview } from '@/lib/domain/invitations'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
-  const router = useRouter()
+export const metadata: Metadata = { title: 'Sign in' }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      const result = await login(email, password)
-      if (result.success) {
-        router.push('/dashboard')
-      } else {
-        setError(result.error || 'Login failed.')
-      }
-    } catch (err) {
-      setError('Connection error. Please try again.')
-      console.error('Login error:', err)
-    }
-    setLoading(false)
-  }
+export default async function LoginPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams
+  const next = firstParam(params, 'next')
+  const invite = firstParam(params, 'invite')
+  const preview = isInviteToken(invite) ? await getInvitationPreview(invite) : null
+  const mode = firstParam(params, 'mode')
+  const initialMode: LoginMode = mode === 'sso' || mode === 'link' ? mode : 'password'
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <div className="auth-header">
-          <Link href="/" className="auth-logo">
-            <div className="landing-nav-logo-icon">P</div>
-            Upvane
+    <AuthShell
+      title="Sign in"
+      subtitle={
+        preview
+          ? `Sign in to join ${preview.organization.name} as ${ROLE_ARTICLE_LABEL[preview.role]}.`
+          : 'Welcome back. Your status pages, monitors and incidents are where you left them.'
+      }
+      footer={
+        <>
+          New to Upvane?{' '}
+          <Link className="link" href={`/register${authQuery({ next, invite })}`}>
+            Create an account
           </Link>
-          <h1 className="auth-title">Welcome back</h1>
-          <p className="auth-subtitle">Sign in to your account</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="auth-form">
-          <Input
-            id="login-email"
-            label="Email"
-            type="email"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            maxLength={100}
-            autoComplete="email"
-          />
-          <Input
-            id="login-password"
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-            autoComplete="current-password"
-          />
-
-          {error ? <div className="auth-error" id="login-error" style={{ color: 'var(--status-red)', fontSize: '0.8125rem' }}>{error}</div> : null}
-
-          <Button
-            type="submit"
-            variant="primary"
-            className="btn-block"
-            loading={loading}
-            id="login-submit"
-          >
-            Sign in
-          </Button>
-        </form>
-
-        <p className="auth-footer">
-          Don&apos;t have an account? <Link href="/register">Sign up</Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <LoginForm next={next} invite={isInviteToken(invite) ? invite : null} initialEmail={firstParam(params, 'email')} initialMode={initialMode} linkError={firstParam(params, 'error')} />
+    </AuthShell>
   )
 }

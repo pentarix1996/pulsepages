@@ -8,10 +8,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:sql": "./scripts/test-sql.sh"
   },
   "keywords": [
     "status-page",
@@ -22,13 +24,12 @@
   "author": "Upvane",
   "license": "MIT",
   "dependencies": {
-    "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.104.1",
-    "next": "^16.2.4",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
+    "next": "^16.3.8",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "resend": "^6.12.2",
-    "supabase": "^2.92.1"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
@@ -40,7 +41,11 @@
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.5",
     "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.8",
     "jsdom": "^29.0.2",
+    "playwright-core": "1.56",
+    "supabase": "^2.120.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.4"
   }
