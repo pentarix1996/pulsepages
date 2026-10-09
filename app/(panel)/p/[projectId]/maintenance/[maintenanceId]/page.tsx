@@ -14,6 +14,9 @@ export default async function MaintenanceWindowPage({ params }: { params: Promis
   const ctx = await panelContext()
   const { access, maintenance, components } = await guard(() => getMaintenanceView(ctx, projectId, maintenanceId))
   await connection()
+  // Dynamic Server Component (after connection()): one clock read per request.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now()
 
   return (
     <MaintenanceDetail
@@ -23,7 +26,7 @@ export default async function MaintenanceWindowPage({ params }: { params: Promis
       maintenance={maintenance}
       components={components.map((component) => ({ id: component.id, name: component.name, slug: component.slug }))}
       canRespond={hasRole(access.role, 'responder')}
-      now={Date.now()}
+      now={now}
     />
   )
 }

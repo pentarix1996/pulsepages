@@ -44,7 +44,9 @@ export async function appRequest<T = unknown>(path: string, init: { method?: 'GE
   }
   if (!response.ok) {
     if (response.status === 401 && typeof window !== 'undefined') {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`
+      // Full navigation on purpose: the session is gone, so client state should not survive.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+      window.location.assign(`/login?next=${encodeURIComponent(window.location.pathname)}`)
     }
     throw new AppRequestError(payload.error ?? 'Something went wrong. Try again in a moment.', payload.code ?? 'internal', response.status, payload.details)
   }

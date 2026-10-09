@@ -76,6 +76,9 @@ export function MonitorConfigCard({ monitor, componentStatuses, projectId }: { m
   const codes = Array.isArray(config.expected_status_codes) && config.expected_status_codes.length > 0 ? (config.expected_status_codes as unknown[]).join(', ') : '200-399'
   const failLabel = (onFail?: string) => (onFail === 'degraded' ? COMPONENT_STATUS_LABELS[monitor.degraded_status] : COMPONENT_STATUS_LABELS[monitor.failure_status])
   const isHttp = monitor.type === 'http' || monitor.type === 'keyword'
+  // Server Component, rendered once per request: reading the clock here is safe.
+  // eslint-disable-next-line react-hooks/purity
+  const tlsDaysLeft = monitor.tls_expires_at ? Math.max(0, Math.round((Date.parse(monitor.tls_expires_at) - Date.now()) / 86_400_000)) : null
 
   return (
     <Card aria-label="Configuration" style={{ flex: '3 1 520px', minWidth: 0 }}>
@@ -164,7 +167,7 @@ export function MonitorConfigCard({ monitor, componentStatuses, projectId }: { m
       {monitor.type === 'tls' ? (
         <div className="mon-sec">
           <h3>Certificate</h3>
-          <Row label="Expires">{monitor.tls_expires_at ? `${formatDate(monitor.tls_expires_at)} (${Math.max(0, Math.round((Date.parse(monitor.tls_expires_at) - Date.now()) / 86_400_000))} days)` : 'Not read yet'}</Row>
+          <Row label="Expires">{monitor.tls_expires_at ? `${formatDate(monitor.tls_expires_at)} (${tlsDaysLeft} days)` : 'Not read yet'}</Row>
           <Row label="Warns">{String(config.warn_days ?? 14)} days before expiry</Row>
         </div>
       ) : null}

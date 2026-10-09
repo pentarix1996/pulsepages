@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { INCIDENT_IMPACT_LABELS } from '@shared/domain.ts'
 import { IncidentStage } from '@/components/panel/incidents/IncidentStage'
 import { secondsBetween, shortId, zoneName } from '@/components/panel/incidents/format'
@@ -99,8 +99,9 @@ interface Props {
 export function PostmortemEditor({ projectId, timeZone, postmortem, incident, canEdit }: Props) {
   const confirm = useConfirm()
   const [draft, setDraft] = useState<Draft>(() => toDraft(postmortem))
-  const saved = useRef(JSON.stringify(toBody(toDraft(postmortem))))
-  const dirty = JSON.stringify(toBody(draft)) !== saved.current
+  // Last saved body, to tell whether the draft has unsaved changes.
+  const [saved, setSaved] = useState(() => JSON.stringify(toBody(toDraft(postmortem))))
+  const dirty = JSON.stringify(toBody(draft)) !== saved
   const save = useAction()
   const publish = useAction()
   const base = `/projects/${projectId}/incidents/${incident.id}/postmortem`
@@ -121,7 +122,7 @@ export function PostmortemEditor({ projectId, timeZone, postmortem, incident, ca
 
   const persist = () =>
     appRequest<PostmortemResource>(base, { method: 'PUT', body: toBody(draft) }).then((result) => {
-      saved.current = JSON.stringify(toBody(toDraft(result)))
+      setSaved(JSON.stringify(toBody(toDraft(result))))
       return result
     })
 

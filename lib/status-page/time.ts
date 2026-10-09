@@ -21,6 +21,7 @@ export type StampFormat =
  * Formats `iso` in `timeZone`. Deliberately self-contained (no imports, no outer variables, ES5 syntax inside): its
  * source is inlined into the page by StatusBootstrap so hard loads show the visitor's zone before the first paint.
  */
+/* eslint-disable no-var -- ES5 on purpose, see above */
 export function formatStamp(iso: string, format: string, timeZone: string, relativeTo?: string | null): string {
   var date = new Date(iso)
   if (isNaN(date.getTime())) return ''
@@ -101,6 +102,7 @@ export function formatStamp(iso: string, format: string, timeZone: string, relat
       return short + ', ' + time
   }
 }
+/* eslint-enable no-var */
 
 /** The calendar date (YYYY-MM-DD) of `iso` in `timeZone`. */
 export function localDateKey(iso: string | Date, timeZone: string): string {
